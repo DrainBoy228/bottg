@@ -3,963 +3,693 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Art Commissions</title>
-    
-    <!-- Google Fonts: Quicksand for a soft, rounded aesthetic -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Telegram Web App JS -->
+    <title>Artist Commission Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <!-- Lucide Icons via CDN (Vector Icons only, strictly no emojis) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgCream: '#FDFBF7',
+                        primaryPink: '#F4C7CC',
+                        textDark: '#4A4345',
+                        softRed: '#ffc1c1',
+                        softRedText: '#d9534f',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            /* Elegant, cozy, pastel palette */
-            --bg-color: #FDFBF7; /* Warm cream */
-            --bg-gradient: linear-gradient(135deg, #FDFBF7 0%, #FAEDEF 100%);
-            --primary-color: #F4C7CC; /* Soft pastel pink */
-            --primary-hover: #EBB5BB; /* Blush rose */
-            --primary-active: #E0A4AB;
-            
-            --text-color: #4A4345; /* Soft charcoal */
-            --text-light: #8C8486;
-            --text-on-primary: #4A4345; /* Dark text on pink for warmth */
-            
-            --surface-color: rgba(255, 255, 255, 0.65); /* Frosted glass */
-            --surface-border: rgba(255, 255, 255, 0.9);
-            
-            --shadow-soft: 0 8px 32px rgba(230, 190, 195, 0.25);
-            --shadow-inner: inset 0 2px 4px rgba(230, 190, 195, 0.1);
-            
-            --radius-lg: 32px;
-            --radius-md: 20px;
-            --radius-sm: 12px;
-            --radius-pill: 100px;
-            
-            /* Fluid, organic animations */
-            --transition-spring: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-            --transition-fade: all 0.3s ease;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-
         body {
-            font-family: 'Quicksand', sans-serif;
-            background: var(--bg-gradient);
-            color: var(--text-color);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-            background-attachment: fixed;
+            background-color: #FDFBF7;
+            color: #4A4345;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: env(safe-area-inset-bottom);
         }
-
-        h1, h2, h3, h4 {
-            font-weight: 700;
-            color: var(--text-color);
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
+        .glowing-dot {
+            box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC;
+            animation: pulse-glow 2s infinite;
         }
-
-        p {
-            line-height: 1.6;
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
         }
-
-        /* App Container mimicking TMA constraints */
-        #app {
-            max-width: 600px;
-            margin: 0 auto;
+        .custom-input {
             width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .glass-card {
-            background: var(--surface-color);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--surface-border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-soft);
-            padding: 24px;
-            transition: var(--transition-spring);
-        }
-
-        .btn {
-            background: var(--primary-color);
-            color: var(--text-on-primary);
-            font-family: inherit;
-            font-weight: 600;
-            font-size: 16px;
-            border: none;
-            border-radius: var(--radius-pill);
-            padding: 14px 28px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: var(--transition-spring);
-            box-shadow: 0 4px 12px rgba(244, 199, 204, 0.4);
-            width: 100%;
-        }
-
-        .btn:hover, .btn:active {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(244, 199, 204, 0.6);
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--primary-color);
-            box-shadow: none;
-        }
-        
-        .btn-outline:hover, .btn-outline:active {
-            background: rgba(244, 199, 204, 0.1);
-            transform: translateY(0);
-            box-shadow: none;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .input-group label {
-            font-weight: 600;
-            font-size: 14px;
-            margin-left: 4px;
-        }
-
-        .input, .select, .textarea {
-            background: rgba(255, 255, 255, 0.7);
-            border: 2px solid transparent;
-            border-radius: var(--radius-md);
-            padding: 16px;
-            font-family: inherit;
-            font-size: 16px;
-            color: var(--text-color);
-            transition: var(--transition-fade);
-            box-shadow: var(--shadow-inner);
-            width: 100%;
+            background-color: white;
+            border: 2px solid #FDFBF7;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #4A4345;
+            transition: border-color 0.2s ease;
             outline: none;
-            -webkit-appearance: none;
         }
-
-        .textarea {
-            resize: vertical;
-            min-height: 120px;
-        }
-
-        .input:focus, .select:focus, .textarea:focus {
-            background: #FFFFFF;
-            border-color: var(--primary-color);
-        }
-
-        /* Custom select arrow wrapper */
-        .select-wrapper {
-            position: relative;
-        }
-        .select-wrapper::after {
-            content: '';
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 12px;
-            height: 12px;
-            border-right: 2px solid var(--text-light);
-            border-bottom: 2px solid var(--text-light);
-            rotate: 45deg;
-            pointer-events: none;
-            transition: var(--transition-fade);
-        }
-
-        .header {
-            padding: 20px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10;
-        }
-
-        .content-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 24px 100px 24px; /* Bottom padding for nav */
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* Animation class for views */
-        .fade-in {
-            animation: softFadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-        @keyframes softFadeIn {
-            0% { opacity: 0; transform: translateY(15px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 48px);
-            max-width: 552px; /* 600 - 48 */
-            background: var(--surface-color);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--surface-border);
-            border-radius: var(--radius-pill);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px;
-            box-shadow: var(--shadow-soft);
-            z-index: 100;
-        }
-
-        .nav-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding: 8px 0;
-            color: var(--text-light);
-            text-decoration: none;
-            cursor: pointer;
-            border-radius: var(--radius-pill);
-            transition: var(--transition-spring);
-        }
-
-        .nav-item span {
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .nav-item.active {
-            color: var(--text-on-primary);
-            background: var(--primary-color);
-            box-shadow: 0 4px 12px rgba(244, 199, 204, 0.3);
-        }
-
-        .order-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .order-card {
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
-        .order-card:hover {
-            transform: scale(1.02);
-        }
-
-        .order-info h3 {
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-        .order-info p {
-            font-size: 14px;
-            color: var(--text-light);
-        }
-
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: var(--radius-pill);
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .status-pending { background: #FFF3CD; color: #856404; }
-        .status-accepted { background: #D4EDDA; color: #155724; }
-        .status-declined { background: #F8D7DA; color: #721C24; }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .stat-box {
-            text-align: center;
-            padding: 16px;
-        }
-        .stat-box h2 {
-            font-size: 28px;
-            color: var(--primary-active);
-            margin-bottom: 4px;
-        }
-
-        /* Chat Styles */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 200px); /* Adjust based on header/nav */
-        }
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding-bottom: 16px;
-        }
-        .message {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: var(--radius-md);
-            font-size: 15px;
-            line-height: 1.4;
-            animation: softFadeIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-        .message-sent {
-            align-self: flex-end;
-            background: var(--primary-color);
-            color: var(--text-on-primary);
-            border-bottom-right-radius: 4px;
-        }
-        .message-received {
-            align-self: flex-start;
-            background: rgba(255, 255, 255, 0.8);
-            border-bottom-left-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.9);
-        }
-        .chat-input-area {
-            display: flex;
-            gap: 8px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(0,0,0,0.05);
-        }
-        .chat-input-area .input {
-            border-radius: var(--radius-pill);
-            padding: 12px 20px;
-        }
-        .btn-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            padding: 0;
-            flex-shrink: 0;
-        }
-
-        /* Settings item */
-        .settings-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-        .settings-item:last-child {
-            border-bottom: none;
-        }
-        .lang-switch {
-            display: flex;
-            background: rgba(255,255,255,0.5);
-            border-radius: var(--radius-pill);
-            padding: 4px;
-        }
-        .lang-btn {
-            padding: 6px 16px;
-            border-radius: var(--radius-pill);
-            border: none;
-            background: transparent;
-            font-family: inherit;
-            font-weight: 600;
-            color: var(--text-light);
-            cursor: pointer;
-            transition: var(--transition-fade);
-        }
-        .lang-btn.active {
-            background: #fff;
-            color: var(--text-color);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
+        .custom-input:focus { border-color: #F4C7CC; }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-primaryPink selection:text-textDark overflow-x-hidden">
 
-    <div id="app">
-        <header class="header">
-            <h2 id="header-title">Order Custom Art</h2>
-        </header>
-
-        <main class="content-area" id="content">
-            <!-- Dynamic content injected here via JS -->
-        </main>
-
-        <nav class="bottom-nav" id="main-nav">
-            <!-- Dynamic nav items injected here -->
-        </nav>
-    </div>
+    <div id="app-header" class="sticky top-0 z-20 bg-bgCream/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></div>
+    <main id="app-content" class="flex-1 w-full max-w-lg mx-auto relative pb-24"></main>
+    <nav id="app-bottom-nav" class="fixed bottom-0 w-full max-w-lg left-1/2 -translate-x-1/2 bg-white border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-safe"></nav>
 
     <script>
+        // ================= НАСТРОЙКИ СВЯЗИ =================
+        // ВАЖНО: Впиши сюда ID девушки!
+        const ARTIST_TELEGRAM_ID = 123456789; 
         
-        // Telegram Config
-        const ARTIST_TELEGRAM_ID = 123456789; // Replace this with the real Artist's Telegram ID
+        // Адрес твоего Python-сервера. Пока запускаешь на ПК, оставляем 127.0.0.1.
+        // Позже, когда перенесем на хостинг, заменишь эту ссылку!
+        const API_URL = "http://127.0.0.1:8000";
+        // ===================================================
 
-        // Application State
-        const state = {
-            role: 'customer', // Default, automatically updated on load
-            lang: 'en', // 'en' or 'ru'
-            currentView: 'order', // Default, automatically updated on load
-            selectedOrderId: null
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.ready();
+            try { tg.setHeaderColor('#FDFBF7'); } catch (e) {}
+        }
+
+        const initData = tg?.initDataUnsafe || {};
+        const tgUser = initData?.user?.id || Math.floor(Math.random() * 1000000000);
+        const tgUserName = initData?.user?.first_name || 'Guest';
+
+        const currentRole = (tgUser === ARTIST_TELEGRAM_ID) ? 'artist' : 'customer';
+
+        let state = {
+            lang: 'ru', // Сделал русский по умолчанию
+            tab: currentRole === 'artist' ? 'new_requests' : 'order_art',
+            view: 'main',
+            activeOrderId: null,
+            mockOrders: [], 
+            draftFiles: 0,
+            _lastDataStr: "" // Для предотвращения моргания чата
         };
-
-        // Mock Orders Data (Simulating a database)
-        const mockOrders = [
-            {
-                id: 'ORD-001',
-                customerName: 'Alice L.',
-                type: 'Portrait', // Store raw English, translate on render
-                description: 'A soft pastel portrait of my cat. Reference attached.',
-                status: 'pending', // pending, accepted, declined
-                date: '2026-09-21',
-                messages: []
-            },
-            {
-                id: 'ORD-002',
-                customerName: 'Bob M.',
-                type: 'Full Body',
-                description: 'Full body character design for a cozy fantasy game.',
-                status: 'accepted',
-                date: '2026-09-20',
-                messages: [
-                    { sender: 'artist', text: 'Hello! I have started the initial sketch.', time: '10:00 AM' },
-                    { sender: 'customer', text: 'Wonderful, cannot wait to see it!', time: '10:15 AM' }
-                ]
-            }
-        ];
 
         const i18n = {
             en: {
-                prototype_tool: "Prototype Tool:",
-                view_artist: "View as Artist",
-                view_customer: "View as Customer",
-                
-                // Navigation
-                nav_order: "Order Art",
-                nav_profile: "Profile",
-                nav_inbox: "Inbox",
-                nav_chats: "Chats",
-                
-                // Titles
-                title_order: "Order Custom Art",
-                title_profile: "My Profile",
-                title_chat: "Chat with Artist",
-                title_inbox: "Order Inbox",
-                title_detail: "Request Details",
-                title_chats: "Active Chats",
-                title_client_chat: "Chat with Client",
-                
-                // Order Form
-                lbl_art_type: "Type of Art",
-                lbl_desc: "Description & References",
-                placeholder_desc: "Describe what you would like me to draw...",
-                btn_upload: "Upload References",
-                btn_submit: "Submit Request",
-                msg_submitted: "Request submitted successfully!",
-                
-                // Art Types
-                type_portrait: "Portrait",
-                type_half: "Half Body",
-                type_full: "Full Body",
-                type_chibi: "Chibi",
-                type_sketch: "Sketch",
-                type_other: "Other",
-                
-                // Profile
-                stat_total: "Total Orders",
-                stat_active: "Active",
-                history_title: "Order History",
-                settings_title: "Settings",
-                lbl_language: "Language",
-                
-                // Artist Detail View
-                lbl_client: "Client",
-                lbl_date: "Date",
-                btn_accept: "Accept Order",
-                btn_decline: "Decline Gently",
-                
-                // Status
-                status_pending: "Pending",
-                status_accepted: "Accepted",
-                status_declined: "Declined",
-                
-                // Chat
-                placeholder_chat: "Type a message..."
+                appTitle: 'Commission Studio', tabOrder: 'Order Art', tabProfile: 'Profile', tabNew: 'New Requests', tabActive: 'Active Works',
+                emptyOrdersTitle: 'No Orders Yet', emptyOrdersDesc: 'Fill out the form to commission your first artwork.',
+                emptyNewTitle: 'All Caught Up!', emptyNewDesc: 'No new requests right now. Time to relax!',
+                emptyActiveTitle: 'No Active Works', emptyActiveDesc: 'Accept some requests to see them here.',
+                formTitle: 'Request a Commission', artType: 'Art Type',
+                types: { portrait: 'Portrait', halfBody: 'Half Body', fullBody: 'Full Body', chibi: 'Chibi', sketch: 'Sketch', other: 'Other' },
+                description: 'Description (Characters, poses, details...)', uploadBtn: 'Upload References', submitBtn: 'Submit Request',
+                filesAttached: 'files attached', stats: 'Your Stats', totalOrdered: 'Total Ordered', language: 'Language', orderHistory: 'Order History',
+                setPrice: 'Set Price (USD)', acceptOrder: 'Accept Order', declineOrder: 'Decline', banUser: 'Ban User',
+                unread: 'New', pending: 'Pending', accepted: 'Accepted', chatPlaceholder: 'Type a message...', send: 'Send',
+                priceSetAt: 'Price:', back: 'Back', status: 'Status', success: 'Success!', orderSent: 'Your request has been sent to the artist.'
             },
             ru: {
-                prototype_tool: "Инструмент:",
-                view_artist: "Взгляд Художника",
-                view_customer: "Взгляд Клиента",
-                
-                nav_order: "Заказ Арта",
-                nav_profile: "Профиль",
-                nav_inbox: "Входящие",
-                nav_chats: "Чаты",
-                
-                title_order: "Заказать Арт",
-                title_profile: "Мой Профиль",
-                title_chat: "Чат с Художником",
-                title_inbox: "Новые Заказы",
-                title_detail: "Детали Заказа",
-                title_chats: "Активные Чаты",
-                title_client_chat: "Чат с Клиентом",
-                
-                lbl_art_type: "Тип рисунка",
-                lbl_desc: "Описание и референсы",
-                placeholder_desc: "Опишите, что бы вы хотели, чтобы я нарисовал(а)...",
-                btn_upload: "Загрузить референсы",
-                btn_submit: "Отправить заказ",
-                msg_submitted: "Заказ успешно отправлен!",
-                
-                type_portrait: "Портрет",
-                type_half: "По пояс",
-                type_full: "В полный рост",
-                type_chibi: "Чиби",
-                type_sketch: "Скетч",
-                type_other: "Другое",
-                
-                stat_total: "Всего заказов",
-                stat_active: "Активные",
-                history_title: "История заказов",
-                settings_title: "Настройки",
-                lbl_language: "Язык",
-                
-                lbl_client: "Клиент",
-                lbl_date: "Дата",
-                btn_accept: "Принять Заказ",
-                btn_decline: "Мягко Отклонить",
-                
-                status_pending: "В ожидании",
-                status_accepted: "Принят",
-                status_declined: "Отклонен",
-                
-                placeholder_chat: "Написать сообщение..."
+                appTitle: 'Арт Студия', tabOrder: 'Заказать', tabProfile: 'Профиль', tabNew: 'Новые заявки', tabActive: 'В работе',
+                emptyOrdersTitle: 'Пока нет заказов', emptyOrdersDesc: 'Заполните форму, чтобы сделать первый заказ.',
+                emptyNewTitle: 'Все сделано!', emptyNewDesc: 'Новых заявок пока нет. Время отдохнуть!',
+                emptyActiveTitle: 'Нет активных заказов', emptyActiveDesc: 'Примите заявки, чтобы они появились здесь.',
+                formTitle: 'Оформить заказ', artType: 'Тип арта',
+                types: { portrait: 'Портрет', halfBody: 'По пояс', fullBody: 'В полный рост', chibi: 'Чиби', sketch: 'Скетч', other: 'Другое' },
+                description: 'Описание (Персонажи, позы, детали...)', uploadBtn: 'Загрузить референсы', submitBtn: 'Отправить заявку',
+                filesAttached: 'файлов прикреплено', stats: 'Ваша статистика', totalOrdered: 'Всего заказов', language: 'Язык', orderHistory: 'История заказов',
+                setPrice: 'Указать цену', acceptOrder: 'Принять заказ', declineOrder: 'Отклонить', banUser: 'Забанить',
+                unread: 'Новое', pending: 'Ожидает', accepted: 'Принят', chatPlaceholder: 'Введите сообщение...', send: 'Отправить',
+                priceSetAt: 'Цена:', back: 'Назад', status: 'Статус', success: 'Успешно!', orderSent: 'Ваша заявка отправлена художнику.'
             }
         };
 
-        // Helper: Get translation
-        function t(key) {
-            return i18n[state.lang][key] || key;
-        }
+        const t = (key, nestedKey = null) => {
+            const strings = i18n[state.lang];
+            if (nestedKey) return strings[key][nestedKey] || strings[key] || key;
+            return strings[key] || key;
+        };
 
-        // Helper: Map Art Type to translation
-        function translateArtType(typeEn) {
-            const map = {
-                'Portrait': 'type_portrait',
-                'Half Body': 'type_half',
-                'Full Body': 'type_full',
-                'Chibi': 'type_chibi',
-                'Sketch': 'type_sketch',
-                'Other': 'type_other'
-            };
-            return t(map[typeEn]) || typeEn;
-        }
-
-        const contentEl = document.getElementById('content');
-        const navEl = document.getElementById('main-nav');
-        const headerTitle = document.getElementById('header-title');
-
-        function setLanguage(lang) {
-            state.lang = lang;
-            renderApp();
-        }
-
-        function navigate(view, orderId = null) {
-            state.currentView = view;
-            if (orderId) state.selectedOrderId = orderId;
-            renderApp();
-        }
-
-        function renderApp() {
-            contentEl.innerHTML = ''; // Clear content
-            renderNavigation();
-            
-            // Update Header Title based on view
-            const titles = {
-                'order': t('title_order'),
-                'profile': t('title_profile'),
-                'chat_customer': t('title_chat'),
-                'inbox': t('title_inbox'),
-                'detail': t('title_detail'),
-                'chats_list': t('title_chats'),
-                'chat_artist': t('title_client_chat')
-            };
-            headerTitle.innerText = titles[state.currentView] || "App";
-
-            // Render specific view
-            const viewWrapper = document.createElement('div');
-            viewWrapper.className = 'fade-in';
-
-            if (state.role === 'customer') {
-                if (state.currentView === 'order') viewWrapper.appendChild(buildOrderView());
-                else if (state.currentView === 'profile') viewWrapper.appendChild(buildProfileView());
-                else if (state.currentView === 'chat_customer') viewWrapper.appendChild(buildChatView('customer'));
-            } else {
-                if (state.currentView === 'inbox') viewWrapper.appendChild(buildInboxView());
-                else if (state.currentView === 'detail') viewWrapper.appendChild(buildDetailView());
-                else if (state.currentView === 'chats_list') viewWrapper.appendChild(buildChatsListView());
-                else if (state.currentView === 'chat_artist') viewWrapper.appendChild(buildChatView('artist'));
+        // --- НАСТОЯЩИЙ API (Связь с Python-сервером) ---
+        const api = {
+            sync: async () => {
+                try {
+                    const res = await fetch(`${API_URL}/api/sync?user_id=${tgUser}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const newDataStr = JSON.stringify(data.orders);
+                        
+                        // Обновляем экран только если данные реально изменились, 
+                        // чтобы не сбрасывать фокус с клавиатуры во время набора текста
+                        if (state._lastDataStr !== newDataStr) {
+                            state.mockOrders = data.orders;
+                            state._lastDataStr = newDataStr;
+                            
+                            // Если мы в чате, обновляем только блок сообщений
+                            if (state.view === 'chat') {
+                                const chatDiv = document.getElementById('chat-messages');
+                                if (chatDiv) {
+                                    chatDiv.innerHTML = renderChatMessagesOnly();
+                                    chatDiv.scrollTop = chatDiv.scrollHeight;
+                                }
+                            } else {
+                                App.render();
+                            }
+                        }
+                    }
+                } catch (e) { console.log("Waiting for server..."); }
+            },
+            createOrder: async (type, desc) => {
+                await fetch(`${API_URL}/api/order`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ customerId: tgUser, customerName: tgUserName, type: type, description: desc })
+                });
+                await api.sync();
+            },
+            acceptOrder: async (orderId, price) => {
+                await fetch(`${API_URL}/api/order/${orderId}/accept`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ price: price })
+                });
+                await api.sync();
+            },
+            declineOrder: async (orderId) => {
+                await fetch(`${API_URL}/api/order/${orderId}/decline`, { method: 'POST' });
+                await api.sync();
+            },
+            banUser: async (orderId) => {
+                await fetch(`${API_URL}/api/order/${orderId}/ban`, { method: 'POST' });
+                await api.sync();
+            },
+            markAsRead: async (orderId) => {
+                await fetch(`${API_URL}/api/order/${orderId}/read`, { method: 'POST' });
+                await api.sync();
+            },
+            sendMessage: async (orderId, text) => {
+                await fetch(`${API_URL}/api/order/${orderId}/message`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ text: text, sender: currentRole })
+                });
+                await api.sync();
             }
+        };
 
-            contentEl.appendChild(viewWrapper);
-            lucide.createIcons(); // Initialize icons for the new DOM elements
-        }
+        const formatDate = (isoString) => {
+            if (!isoString) return '';
+            const date = new Date(isoString);
+            return date.toLocaleDateString(state.lang === 'en' ? 'en-US' : 'ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        };
 
-        function renderNavigation() {
-            navEl.innerHTML = '';
-            
-            if (state.role === 'customer') {
-                // Customer Nav: Order, Profile
-                navEl.appendChild(createNavItem('order', 'pencil', t('nav_order')));
-                navEl.appendChild(createNavItem('profile', 'user', t('nav_profile')));
-                navEl.style.display = 'flex';
-            } else {
-                // Artist Nav: Inbox, Chats
-                navEl.appendChild(createNavItem('inbox', 'inbox', t('nav_inbox')));
-                navEl.appendChild(createNavItem('chats_list', 'message-circle', t('nav_chats')));
-                navEl.style.display = 'flex';
-            }
-
-            // Hide nav inside chat or detail views to give more space
-            if (['chat_customer', 'chat_artist', 'detail'].includes(state.currentView)) {
-                navEl.style.display = 'none';
-                contentEl.style.paddingBottom = '24px';
-            } else {
-                contentEl.style.paddingBottom = '100px';
-            }
-        }
-
-        function createNavItem(viewName, iconName, label) {
-            const a = document.createElement('a');
-            a.className = `nav-item ${state.currentView === viewName ? 'active' : ''}`;
-            a.onclick = () => navigate(viewName);
-            a.innerHTML = `
-                <i data-lucide="${iconName}" width="20" height="20"></i>
-                <span>${label}</span>
-            `;
-            return a;
-        }
-
-        function buildOrderView() {
-            const div = document.createElement('div');
-            div.className = 'glass-card';
-            
-            div.innerHTML = `
-                <form id="order-form" onsubmit="submitOrder(event)">
-                    <div class="input-group">
-                        <label>${t('lbl_art_type')}</label>
-                        <div class="select-wrapper">
-                            <select class="select" required>
-                                <option value="Portrait">${t('type_portrait')}</option>
-                                <option value="Half Body">${t('type_half')}</option>
-                                <option value="Full Body">${t('type_full')}</option>
-                                <option value="Chibi">${t('type_chibi')}</option>
-                                <option value="Sketch">${t('type_sketch')}</option>
-                                <option value="Other">${t('type_other')}</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>${t('lbl_desc')}</label>
-                        <textarea class="textarea" placeholder="${t('placeholder_desc')}" required></textarea>
-                    </div>
-
-                    <div class="input-group">
-                        <button type="button" class="btn btn-outline" style="margin-bottom: 16px;">
-                            <i data-lucide="image-plus" width="20"></i>
-                            ${t('btn_upload')}
-                        </button>
-                    </div>
-
-                    <button type="submit" class="btn">
-                        <i data-lucide="send" width="20"></i>
-                        ${t('btn_submit')}
+        function renderHeader() {
+            const header = document.getElementById('app-header');
+            if (state.view !== 'main') {
+                const activeOrder = state.mockOrders.find(o => o.id === state.activeOrderId);
+                let extraInfo = '';
+                if (state.view === 'chat' && activeOrder && activeOrder.price) {
+                    extraInfo = `<div class="bg-primaryPink/20 text-primaryPink font-bold px-3 py-1 rounded-full text-sm shadow-sm">${t('priceSetAt')} $${activeOrder.price}</div>`;
+                }
+                header.innerHTML = `
+                    <button onclick="App.goBack()" class="p-2 -ml-2 rounded-full hover:bg-black/5 active:bg-black/10 transition-colors">
+                        <i data-lucide="chevron-left" class="w-6 h-6 text-textDark"></i>
                     </button>
-                </form>
-            `;
-            return div;
-        }
-
-        function submitOrder(e) {
-            e.preventDefault();
-            // Simulate form submission
-            const btn = e.target.querySelector('button[type="submit"]');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="check" width="20"></i> ${t('msg_submitted')}`;
-            btn.style.background = '#81C784'; // Soft green success
-            lucide.createIcons();
-            
-            setTimeout(() => {
-                e.target.reset();
-                btn.innerHTML = originalText;
-                btn.style.background = '';
-                lucide.createIcons();
-                navigate('profile'); // Send to profile to see the new pending order
-            }, 1500);
-        }
-
-        function buildProfileView() {
-            const div = document.createElement('div');
-            
-            // Calculate stats
-            const total = mockOrders.length;
-            const active = mockOrders.filter(o => o.status === 'accepted').length;
-
-            div.innerHTML = `
-                <div class="glass-card stat-grid">
-                    <div class="stat-box">
-                        <h2>${total}</h2>
-                        <p>${t('stat_total')}</p>
+                    <h1 class="font-bold text-lg text-textDark truncate mx-4">${activeOrder ? t('types', activeOrder.type) : t('back')}</h1>
+                    ${extraInfo || '<div class="w-10"></div>'}
+                `;
+            } else {
+                header.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-primaryPink rounded-2xl flex items-center justify-center shadow-sm">
+                            <i data-lucide="palette" class="w-6 h-6 text-textDark"></i>
+                        </div>
+                        <h1 class="font-bold text-xl text-textDark tracking-tight">${t('appTitle')}</h1>
                     </div>
-                    <div class="stat-box">
-                        <h2>${active}</h2>
-                        <p>${t('stat_active')}</p>
+                `;
+            }
+        }
+
+        function renderBottomNav() {
+            const nav = document.getElementById('app-bottom-nav');
+            if (state.view !== 'main') { nav.innerHTML = ''; return; }
+
+            let tabsHTML = '';
+            if (currentRole === 'artist') {
+                const unreadCount = state.mockOrders.filter(o => o.status === 'pending' && !o.isRead).length;
+                tabsHTML = `
+                    <button onclick="App.switchTab('new_requests')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'new_requests' ? 'text-textDark opacity-100' : 'text-textDark opacity-40'}">
+                        <div class="relative">
+                            <i data-lucide="inbox" class="w-6 h-6"></i>
+                            ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 w-3 h-3 bg-primaryPink rounded-full glowing-dot border-2 border-white"></span>` : ''}
+                        </div>
+                        <span class="text-[10px] font-semibold">${t('tabNew')}</span>
+                    </button>
+                    <button onclick="App.switchTab('active_works')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'active_works' ? 'text-textDark opacity-100' : 'text-textDark opacity-40'}">
+                        <i data-lucide="paintbrush" class="w-6 h-6"></i>
+                        <span class="text-[10px] font-semibold">${t('tabActive')}</span>
+                    </button>
+                `;
+            } else {
+                tabsHTML = `
+                    <button onclick="App.switchTab('order_art')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'order_art' ? 'text-textDark opacity-100' : 'text-textDark opacity-40'}">
+                        <i data-lucide="pen-tool" class="w-6 h-6"></i>
+                        <span class="text-[10px] font-semibold">${t('tabOrder')}</span>
+                    </button>
+                    <button onclick="App.switchTab('profile')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'profile' ? 'text-textDark opacity-100' : 'text-textDark opacity-40'}">
+                        <i data-lucide="user" class="w-6 h-6"></i>
+                        <span class="text-[10px] font-semibold">${t('tabProfile')}</span>
+                    </button>
+                `;
+            }
+            nav.innerHTML = `<div class="flex justify-between px-4">${tabsHTML}</div>`;
+        }
+
+        function renderCustomerForm() {
+            return `
+                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-primaryPink/10">
+                        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-primaryPink"></i>
+                            ${t('formTitle')}
+                        </h2>
+                        
+                        <form id="orderForm" onsubmit="App.submitOrder(event)" class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-semibold mb-2 ml-1 text-textDark/80">${t('artType')}</label>
+                                <div class="relative">
+                                    <select id="formType" required class="custom-input appearance-none cursor-pointer">
+                                        <option value="portrait">${t('types', 'portrait')}</option>
+                                        <option value="halfBody">${t('types', 'halfBody')}</option>
+                                        <option value="fullBody">${t('types', 'fullBody')}</option>
+                                        <option value="chibi">${t('types', 'chibi')}</option>
+                                        <option value="sketch">${t('types', 'sketch')}</option>
+                                        <option value="other">${t('types', 'other')}</option>
+                                    </select>
+                                    <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none opacity-50"></i>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold mb-2 ml-1 text-textDark/80">${t('description')}</label>
+                                <textarea id="formDesc" required rows="4" class="custom-input resize-none" placeholder="..."></textarea>
+                            </div>
+
+                            <button type="submit" class="w-full bg-primaryPink text-textDark font-bold py-4 rounded-xl shadow-[0_4px_14px_rgba(244,199,204,0.4)] hover:shadow-md active:scale-[0.98] transition-all flex justify-center items-center gap-2">
+                                <i data-lucide="send" class="w-5 h-5"></i>
+                                ${t('submitBtn')}
+                            </button>
+                        </form>
                     </div>
                 </div>
+            `;
+        }
 
-                <h3 style="margin: 24px 0 16px;">${t('history_title')}</h3>
-                <div class="order-list">
-                    ${mockOrders.map(order => `
-                        <div class="glass-card order-card" onclick="${order.status === 'accepted' ? `navigate('chat_customer', '${order.id}')` : ''}">
-                            <div class="order-info">
-                                <h3>${translateArtType(order.type)}</h3>
-                                <p>${order.date}</p>
+        function renderCustomerProfile() {
+            const userOrders = state.mockOrders;
+            let historyHTML = '';
+            
+            if (userOrders.length === 0) {
+                historyHTML = renderEmptyState(t('emptyOrdersTitle'), t('emptyOrdersDesc'), 'history');
+            } else {
+                historyHTML = userOrders.slice().reverse().map(o => `
+                    <div onclick="App.openOrder('${o.id}')" class="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-primaryPink/10 cursor-pointer hover:border-primaryPink transition-colors flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-lg mb-1">${t('types', o.type)}</div>
+                            <div class="text-xs font-medium px-2 py-1 bg-bgCream inline-block rounded-md border border-primaryPink/20 text-textDark/70">
+                                ${t(o.status)}
                             </div>
-                            <span class="status-badge status-${order.status}">
-                                ${t('status_' + order.status)}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            ${o.price ? `<span class="font-bold text-primaryPink">$${o.price}</span>` : ''}
+                            <i data-lucide="chevron-right" class="w-5 h-5 text-textDark/30"></i>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            return `
+                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-primaryPink/10 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 bg-bgCream rounded-full border-2 border-primaryPink flex items-center justify-center">
+                                <i data-lucide="user" class="w-6 h-6 text-primaryPink"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg">${tgUserName}</h3>
+                            </div>
+                        </div>
+                        <div class="flex bg-bgCream rounded-lg p-1 border border-primaryPink/20">
+                            <button onclick="App.setLang('en')" class="px-3 py-1 rounded-md text-sm font-bold transition-colors ${state.lang === 'en' ? 'bg-primaryPink text-textDark shadow-sm' : 'text-textDark/50'}">EN</button>
+                            <button onclick="App.setLang('ru')" class="px-3 py-1 rounded-md text-sm font-bold transition-colors ${state.lang === 'ru' ? 'bg-primaryPink text-textDark shadow-sm' : 'text-textDark/50'}">RU</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-sm ml-2 mb-3 opacity-60 uppercase tracking-wider">${t('stats')}</h3>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-primaryPink/10 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-primaryPink/20 rounded-xl">
+                                    <i data-lucide="shopping-bag" class="w-5 h-5 text-textDark"></i>
+                                </div>
+                                <span class="font-semibold">${t('totalOrdered')}</span>
+                            </div>
+                            <span class="text-2xl font-bold">${userOrders.length}</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-sm ml-2 mb-3 opacity-60 uppercase tracking-wider">${t('orderHistory')}</h3>
+                        ${historyHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderEmptyState(title, desc, iconName) {
+            return `
+                <div class="flex flex-col items-center justify-center p-10 text-center animate-[fadeIn_0.5s_ease-out]">
+                    <div class="w-24 h-24 bg-primaryPink/10 rounded-full flex items-center justify-center mb-6">
+                        <i data-lucide="${iconName}" class="w-12 h-12 text-primaryPink"></i>
+                    </div>
+                    <h3 class="font-bold text-xl mb-2">${title}</h3>
+                    <p class="text-textDark/60 text-sm max-w-[200px] leading-relaxed">${desc}</p>
+                </div>
+            `;
+        }
+
+        function renderArtistList() {
+            const isNewTab = state.tab === 'new_requests';
+            const statusFilter = isNewTab ? 'pending' : 'accepted';
+            const orders = state.mockOrders.filter(o => o.status === statusFilter).slice().reverse();
+
+            if (orders.length === 0) {
+                return renderEmptyState(
+                    isNewTab ? t('emptyNewTitle') : t('emptyActiveTitle'),
+                    isNewTab ? t('emptyNewDesc') : t('emptyActiveDesc'),
+                    isNewTab ? 'coffee' : 'check-circle-2'
+                );
+            }
+
+            return `
+                <div class="p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">
+                    ${orders.map(o => `
+                        <div onclick="App.openOrder('${o.id}')" class="bg-white p-5 rounded-2xl shadow-sm border ${!o.isRead && isNewTab ? 'border-primaryPink shadow-[0_0_10px_rgba(244,199,204,0.3)]' : 'border-primaryPink/10'} cursor-pointer hover:border-primaryPink transition-all relative overflow-hidden group">
+                            ${!o.isRead && isNewTab ? `<div class="absolute top-5 right-5 w-3 h-3 bg-primaryPink rounded-full glowing-dot"></div>` : ''}
+                            
+                            <div class="flex justify-between items-start mb-3 pr-6">
+                                <div>
+                                    <h3 class="font-bold text-lg">${t('types', o.type)}</h3>
+                                    <p class="text-xs font-medium opacity-60 mt-0.5">От: ${o.customerName}</p>
+                                </div>
+                                ${o.price ? `<span class="font-bold bg-primaryPink/20 text-textDark px-3 py-1 rounded-xl text-sm border border-primaryPink/30">$${o.price}</span>` : ''}
+                            </div>
+                            
+                            <p class="text-sm opacity-80 line-clamp-2 leading-relaxed bg-bgCream/50 p-3 rounded-xl border border-primaryPink/5">${o.description}</p>
+                            
+                            <div class="mt-4 flex items-center justify-between text-xs opacity-50 font-medium">
+                                <span>${formatDate(o.date)}</span>
+                                <span class="flex items-center gap-1 group-hover:text-primaryPink transition-colors">
+                                    ${isNewTab ? 'Проверить' : 'Открыть чат'} <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderOrderDetail() {
+            const order = state.mockOrders.find(o => o.id === state.activeOrderId);
+            if (!order) return '';
+
+            const isArtist = currentRole === 'artist';
+            const isPending = order.status === 'pending';
+            let actionArea = '';
+
+            if (isArtist && isPending) {
+                actionArea = `
+                    <div class="mt-8 space-y-4">
+                        <div class="bg-white p-5 rounded-2xl border border-primaryPink shadow-sm">
+                            <label class="block text-sm font-bold mb-3">${t('setPrice')}</label>
+                            <div class="relative flex items-center">
+                                <span class="absolute left-4 font-bold text-lg opacity-50">$</span>
+                                <input type="number" id="priceInput" class="custom-input pl-8 font-bold text-lg" placeholder="0.00" min="1">
+                            </div>
+                            <button onclick="App.acceptCurrentOrder()" class="w-full mt-4 bg-primaryPink text-textDark font-bold py-4 rounded-xl shadow-md active:scale-[0.98] transition-transform">
+                                ${t('acceptOrder')}
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="App.declineCurrentOrder()" class="bg-white border-2 border-primaryPink/20 font-bold py-3 rounded-xl active:scale-[0.98] transition-transform opacity-80 hover:opacity-100">
+                                ${t('declineOrder')}
+                            </button>
+                            <button onclick="App.banCurrentUser()" class="bg-white border-2 border-softRed text-softRedText font-bold py-3 rounded-xl active:scale-[0.98] transition-transform hover:bg-softRed/10">
+                                ${t('banUser')}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (!isArtist && isPending) {
+                actionArea = `
+                    <div class="mt-8 text-center p-6 bg-bgCream rounded-2xl border border-primaryPink/20">
+                        <div class="inline-flex items-center justify-center w-12 h-12 bg-primaryPink/30 rounded-full mb-3">
+                            <i data-lucide="clock" class="w-6 h-6 text-textDark"></i>
+                        </div>
+                        <h3 class="font-bold text-lg mb-1">Ожидаем художника</h3>
+                        <p class="text-sm opacity-70">Заявка рассматривается, скоро появится цена.</p>
+                    </div>
+                `;
+            } else if (order.status === 'declined') {
+                actionArea = `
+                    <div class="mt-8 text-center p-6 bg-white border-2 border-softRed rounded-2xl">
+                        <h3 class="font-bold text-softRedText text-lg mb-1">Заявка отклонена</h3>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="p-4 animate-[slideInRight_0.3s_ease-out]">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-primaryPink/10 relative">
+                        <div class="absolute top-6 right-6 bg-bgCream px-3 py-1 rounded-lg border border-primaryPink/20 text-xs font-bold uppercase tracking-wide">
+                            ${t(order.status)}
+                        </div>
+                        
+                        <div class="mb-6 pr-20">
+                            <h2 class="text-2xl font-bold mb-1">${t('types', order.type)}</h2>
+                            <p class="text-sm opacity-60">От: ${order.customerName}</p>
+                            <p class="text-xs opacity-40 mt-1">${formatDate(order.date)}</p>
+                        </div>
+
+                        <div class="bg-bgCream/50 p-4 rounded-xl border border-primaryPink/10 mb-6">
+                            <h3 class="text-xs font-bold uppercase opacity-50 mb-2">${t('description')}</h3>
+                            <p class="text-sm leading-relaxed whitespace-pre-wrap">${order.description}</p>
+                        </div>
+                        ${actionArea}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderChatMessagesOnly() {
+            const order = state.mockOrders.find(o => o.id === state.activeOrderId);
+            if (!order) return '';
+
+            const messagesHTML = order.messages.map(m => {
+                if (m.sender === 'system') {
+                    return `
+                        <div class="flex justify-center my-4">
+                            <span class="bg-primaryPink/20 border border-primaryPink/30 text-textDark/80 text-xs font-bold px-4 py-1.5 rounded-full backdrop-blur-sm">
+                                ${m.text}
                             </span>
                         </div>
-                    `).join('')}
-                </div>
+                    `;
+                }
 
-                <h3 style="margin: 32px 0 16px;">${t('settings_title')}</h3>
-                <div class="glass-card">
-                    <div class="settings-item">
-                        <span style="font-weight: 600;">${t('lbl_language')}</span>
-                        <div class="lang-switch">
-                            <button class="lang-btn ${state.lang === 'en' ? 'active' : ''}" onclick="setLanguage('en')">EN</button>
-                            <button class="lang-btn ${state.lang === 'ru' ? 'active' : ''}" onclick="setLanguage('ru')">RU</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            return div;
-        }
-
-        function buildInboxView() {
-            const div = document.createElement('div');
-            const pendingOrders = mockOrders.filter(o => o.status === 'pending');
-
-            if (pendingOrders.length === 0) {
-                div.innerHTML = `<p style="text-align: center; color: var(--text-light); margin-top: 40px;">No new requests.</p>`;
-                return div;
-            }
-
-            div.innerHTML = `
-                <div class="order-list">
-                    ${pendingOrders.map(order => `
-                        <div class="glass-card order-card" onclick="navigate('detail', '${order.id}')">
-                            <div class="order-info">
-                                <h3>${order.customerName} - ${translateArtType(order.type)}</h3>
-                                <p>${order.date}</p>
-                            </div>
-                            <i data-lucide="chevron-right" width="20" color="var(--text-light)"></i>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            return div;
-        }
-
-        function buildDetailView() {
-            const div = document.createElement('div');
-            const order = mockOrders.find(o => o.id === state.selectedOrderId);
-
-            if (!order) return div;
-
-            div.innerHTML = `
-                <button class="btn-outline" style="border: none; padding: 0; margin-bottom: 20px; color: var(--text-light); display: inline-flex; align-items: center; gap: 4px;" onclick="navigate('inbox')">
-                    <i data-lucide="arrow-left" width="20"></i> Back
-                </button>
-                
-                <div class="glass-card" style="margin-bottom: 24px;">
-                    <div style="margin-bottom: 16px;">
-                        <span style="font-size: 12px; color: var(--text-light);">${t('lbl_client')}</span>
-                        <h3 style="font-size: 18px;">${order.customerName}</h3>
-                    </div>
-                    <div style="margin-bottom: 16px;">
-                        <span style="font-size: 12px; color: var(--text-light);">${t('lbl_art_type')}</span>
-                        <h3 style="font-size: 16px; font-weight: 500;">${translateArtType(order.type)}</h3>
-                    </div>
-                    <div style="margin-bottom: 16px;">
-                        <span style="font-size: 12px; color: var(--text-light);">${t('lbl_date')}</span>
-                        <h3 style="font-size: 16px; font-weight: 500;">${order.date}</h3>
-                    </div>
-                    <div>
-                        <span style="font-size: 12px; color: var(--text-light);">${t('lbl_desc')}</span>
-                        <p style="background: rgba(255,255,255,0.5); padding: 12px; border-radius: var(--radius-sm); margin-top: 4px;">${order.description}</p>
-                    </div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <button class="btn" onclick="updateOrderStatus('${order.id}', 'accepted')">
-                        <i data-lucide="check-circle" width="20"></i> ${t('btn_accept')}
-                    </button>
-                    <button class="btn btn-outline" style="color: #A5737A; border-color: #A5737A;" onclick="updateOrderStatus('${order.id}', 'declined')">
-                        ${t('btn_decline')}
-                    </button>
-                </div>
-            `;
-            return div;
-        }
-
-        function updateOrderStatus(id, newStatus) {
-            const order = mockOrders.find(o => o.id === id);
-            if(order) order.status = newStatus;
-            navigate('inbox');
-        }
-
-        function buildChatsListView() {
-            const div = document.createElement('div');
-            const activeOrders = mockOrders.filter(o => o.status === 'accepted');
-
-            if (activeOrders.length === 0) {
-                div.innerHTML = `<p style="text-align: center; color: var(--text-light); margin-top: 40px;">No active chats.</p>`;
-                return div;
-            }
-
-            div.innerHTML = `
-                <div class="order-list">
-                    ${activeOrders.map(order => `
-                        <div class="glass-card order-card" onclick="navigate('chat_artist', '${order.id}')">
-                            <div class="order-info">
-                                <h3>${order.customerName}</h3>
-                                <p>${translateArtType(order.type)}</p>
-                            </div>
-                            <i data-lucide="message-circle" width="20" color="var(--primary-color)"></i>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            return div;
-        }
-
-        function buildChatView(roleView) {
-            const div = document.createElement('div');
-            const order = mockOrders.find(o => o.id === state.selectedOrderId);
-            const backView = roleView === 'customer' ? 'profile' : 'chats_list';
-
-            if (!order) return div;
-
-            const messagesHtml = order.messages.map(m => {
-                const isMine = m.sender === roleView;
+                const isMe = m.sender === currentRole;
                 return `
-                    <div class="message ${isMine ? 'message-sent' : 'message-received'}">
-                        ${m.text}
-                        <div style="font-size: 10px; opacity: 0.7; margin-top: 4px; text-align: right;">${m.time}</div>
+                    <div class="flex w-full mb-4 ${isMe ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${
+                            isMe ? 'bg-primaryPink text-textDark rounded-tr-sm' : 'bg-white border border-primaryPink/10 text-textDark rounded-tl-sm'
+                        }">
+                            <p class="text-sm leading-relaxed">${m.text}</p>
+                            ${m.date ? `<p class="text-[10px] opacity-50 mt-1 text-right">${formatDate(m.date).split(',')[1]}</p>` : ''}
+                        </div>
                     </div>
                 `;
             }).join('');
 
-            div.className = 'chat-container';
-            div.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                    <button class="btn-outline" style="border: none; padding: 8px; border-radius: 50%; color: var(--text-color);" onclick="navigate('${backView}')">
-                        <i data-lucide="arrow-left" width="24"></i>
-                    </button>
-                    <div>
-                        <h3 style="font-size: 16px;">${roleView === 'customer' ? 'Artist' : order.customerName}</h3>
-                        <p style="font-size: 12px; color: var(--text-light);">${translateArtType(order.type)}</p>
+            return messagesHTML.length ? messagesHTML : renderEmptyState('Чат открыт', 'Здесь можно обсудить детали заказа.', 'message-circle');
+        }
+
+        function renderChat() {
+            return `
+                <div class="flex flex-col h-[calc(100vh-64px)] animate-[fadeIn_0.2s_ease-out]">
+                    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col">
+                        ${renderChatMessagesOnly()}
+                    </div>
+                    
+                    <div class="bg-white border-t border-primaryPink/30 p-3 pb-safe-offset-4 flex gap-2 items-end shadow-[0_-10px_20px_rgba(244,199,204,0.1)]">
+                        <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; if(this.scrollHeight > 120) this.style.overflowY = 'auto'; else this.style.overflowY = 'hidden';"></textarea>
+                        <button onclick="App.sendChatMessage()" class="bg-primaryPink w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm active:scale-95 transition-transform">
+                            <i data-lucide="send" class="w-5 h-5 ml-1"></i>
+                        </button>
                     </div>
                 </div>
-
-                <div class="glass-card chat-messages" id="chat-messages-container">
-                    ${order.messages.length === 0 ? `<p style="text-align: center; color: var(--text-light); margin-top: auto; margin-bottom: auto;">Start the conversation...</p>` : messagesHtml}
-                </div>
-
-                <div class="chat-input-area">
-                    <input type="text" class="input" id="chat-input" placeholder="${t('placeholder_chat')}" onkeypress="handleChatEnter(event, '${roleView}')">
-                    <button class="btn btn-icon" onclick="sendMessage('${roleView}')">
-                        <i data-lucide="send" width="18"></i>
-                    </button>
-                </div>
             `;
-
-            // Auto-scroll to bottom after render
-            setTimeout(() => {
-                const container = div.querySelector('#chat-messages-container');
-                if (container) container.scrollTop = container.scrollHeight;
-            }, 10);
-
-            return div;
         }
 
-        function handleChatEnter(e, role) {
-            if (e.key === 'Enter') {
-                sendMessage(role);
-            }
-        }
+        const App = {
+            init: () => {
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+                    .pb-safe-offset-4 { padding-bottom: calc(env(safe-area-inset-bottom) + 1rem); }
+                `;
+                document.head.appendChild(style);
 
-        function sendMessage(senderRole) {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (!text) return;
-
-            const order = mockOrders.find(o => o.id === state.selectedOrderId);
-            if (order) {
-                const now = new Date();
-                const time = now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
-                order.messages.push({ sender: senderRole, text: text, time: time });
+                App.render();
                 
-                // Re-render chat to show new message
-                navigate(`chat_${senderRole}`, order.id);
-            }
-        }
+                // Делаем самый первый запрос к серверу
+                api.sync();
+                // Запускаем автоматическое обновление каждые 2 секунды
+                setInterval(api.sync, 2000); 
+            },
 
-        window.addEventListener('DOMContentLoaded', () => {
-            // Initialize Telegram Web App
-            const tg = window.Telegram?.WebApp;
-            if (tg) {
-                tg.expand();
+            render: () => {
+                renderHeader();
+                renderBottomNav();
                 
-                // Automatically detect user and assign role
-                const userId = tg.initDataUnsafe?.user?.id;
-                if (userId === ARTIST_TELEGRAM_ID) {
-                    state.role = 'artist';
-                    state.currentView = 'inbox';
+                const content = document.getElementById('app-content');
+                
+                if (state.view === 'main') {
+                    if (currentRole === 'artist') {
+                        content.innerHTML = renderArtistList();
+                    } else {
+                        if (state.tab === 'order_art') content.innerHTML = renderCustomerForm();
+                        else if (state.tab === 'profile') content.innerHTML = renderCustomerProfile();
+                    }
+                } else if (state.view === 'order_detail') {
+                    content.innerHTML = renderOrderDetail();
+                } else if (state.view === 'chat') {
+                    content.innerHTML = renderChat();
+                    setTimeout(() => {
+                        const chatDiv = document.getElementById('chat-messages');
+                        if(chatDiv) chatDiv.scrollTop = chatDiv.scrollHeight;
+                    }, 50);
+                }
+                lucide.createIcons();
+            },
+
+            switchTab: (tabId) => {
+                state.tab = tabId;
+                state.view = 'main';
+                state.activeOrderId = null;
+                App.render();
+            },
+
+            setLang: (langCode) => {
+                state.lang = langCode;
+                App.render();
+            },
+
+            openOrder: (id) => {
+                state.activeOrderId = id;
+                const order = state.mockOrders.find(o => o.id === id);
+                
+                if (currentRole === 'artist' && order.status === 'pending' && !order.isRead) {
+                    api.markAsRead(id);
+                }
+
+                if (order.status === 'accepted') {
+                    state.view = 'chat';
                 } else {
-                    state.role = 'customer';
-                    state.currentView = 'order';
+                    state.view = 'order_detail';
+                }
+                App.render();
+            },
+
+            goBack: () => {
+                state.view = 'main';
+                state.activeOrderId = null;
+                App.render();
+            },
+
+            submitOrder: (e) => {
+                e.preventDefault();
+                const type = document.getElementById('formType').value;
+                const desc = document.getElementById('formDesc').value;
+                
+                api.createOrder(type, desc);
+                
+                if (tg && tg.showAlert) {
+                    tg.showAlert(t('orderSent'));
+                } else {
+                    alert(t('orderSent'));
+                }
+
+                document.getElementById('orderForm').reset();
+                App.switchTab('profile'); 
+            },
+
+            acceptCurrentOrder: () => {
+                const priceInput = document.getElementById('priceInput');
+                const price = parseFloat(priceInput.value);
+                
+                if (isNaN(price) || price <= 0) {
+                    alert('Пожалуйста, укажите цену.');
+                    return;
+                }
+
+                api.acceptOrder(state.activeOrderId, price);
+                state.view = 'chat'; 
+                App.render();
+            },
+
+            declineCurrentOrder: () => {
+                if (confirm('Точно отклонить заказ?')) {
+                    api.declineOrder(state.activeOrderId);
+                    App.goBack();
+                }
+            },
+
+            banCurrentUser: () => {
+                if (confirm('Точно заблокировать этого человека? Он больше не сможет делать заказы.')) {
+                    api.banUser(state.activeOrderId);
+                    App.goBack();
+                }
+            },
+
+            sendChatMessage: () => {
+                const input = document.getElementById('chatInput');
+                const text = input.value.trim();
+                
+                if (text) {
+                    api.sendMessage(state.activeOrderId, text);
+                    input.value = '';
+                    input.style.height = ''; 
+                    
+                    // Моментально добавляем свое сообщение на экран для красоты, 
+                    // пока ждем ответа от сервера
+                    const order = state.mockOrders.find(o => o.id === state.activeOrderId);
+                    order.messages.push({ sender: currentRole, text: text });
+                    
+                    const chatDiv = document.getElementById('chat-messages');
+                    if (chatDiv) {
+                        chatDiv.innerHTML = renderChatMessagesOnly();
+                        chatDiv.scrollTop = chatDiv.scrollHeight;
+                    }
                 }
             }
-            
-            // Render UI
-            renderApp();
-        });
+        };
+
+        window.addEventListener('DOMContentLoaded', () => { App.init(); });
     </script>
 </body>
 </html>
