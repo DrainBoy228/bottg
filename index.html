@@ -26,24 +26,18 @@
         body, html { height: 100%; margin: 0; overflow: hidden; background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s; }
         #app-container { display: flex; flex-direction: column; height: 100dvh; max-width: 32rem; margin: 0 auto; }
         #app-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
-        
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
-        
         .glowing-dot { box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC; animation: pulse-glow 2s infinite; }
         .dark .glowing-dot { box-shadow: 0 0 8px #A5737A, 0 0 12px #A5737A; }
         @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
-        
         .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; outline: none; transition: border-color 0.2s ease; }
         .custom-input:focus { border-color: #F4C7CC; }
-        
-        /* Глобальная Темная Тема */
         .dark { background-color: #121212; color: #f3f4f6; }
         .dark body { background-color: #121212; color: #f3f4f6; }
         .dark .custom-input { background-color: #1E1E1E !important; border-color: #333333 !important; color: #f3f4f6 !important; }
         .dark .custom-input:focus { border-color: #A5737A !important; }
-        
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -61,18 +55,12 @@
 
     <script>
         // =========================================================================
-        const API_URL = "https://ТВОЯ_ССЫЛКА.lhr.life"; // <--- ВСТАВЬ ССЫЛКУ СЮДА
+        const API_URL = "https://ТВОЯ_ССЫЛКА.lhr.life"; // <--- ВСТАВЬ СЮДА ССЫЛКУ ИЗ ЧЕРНОГО ОКНА LHR
         const ARTIST_TELEGRAM_ID = 5800436089; 
         // =========================================================================
 
         const tg = window.Telegram?.WebApp;
-        if (tg) { 
-            tg.expand(); 
-            tg.ready(); 
-            try { 
-                tg.setHeaderColor(tg.colorScheme === 'dark' ? '#121212' : '#FDFBF7'); 
-            } catch (e) {} 
-        }
+        if (tg) { tg.expand(); tg.ready(); try { tg.setHeaderColor(tg.colorScheme === 'dark' ? '#121212' : '#FDFBF7'); } catch (e) {} }
 
         const initData = tg?.initDataUnsafe || {};
         const tgUser = initData?.user?.id || Math.floor(Math.random() * 1000000000);
@@ -83,8 +71,7 @@
         const currentRole = (tgUser === ARTIST_TELEGRAM_ID) ? 'artist' : 'customer';
 
         let state = {
-            lang: 'ru', 
-            isDark: tg?.colorScheme === 'dark', // Автоопределение темы
+            lang: 'ru', isDark: tg?.colorScheme === 'dark', 
             tab: currentRole === 'artist' ? 'new_requests' : 'order_art', 
             view: 'main', activeOrderId: null, mockOrders: [], draftImages: [], _lastDataStr: ""
         };
@@ -165,9 +152,12 @@
                 payload.initData = tgInitDataRaw; 
                 try {
                     const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    if(!res.ok) throw new Error("Server Error");
+                    if(!res.ok) throw new Error("HTTP Error " + res.status);
                     await api.sync();
-                } catch (e) { alert("Ошибка сети. Проверьте подключение к серверу."); }
+                } catch (e) { 
+                    UI.showAlert("❌ ОШИБКА СЕТИ: Заказ не отправлен. Убедитесь, что сервер запущен и вы обновили ссылку на github.");
+                    throw e; // Жестко прерываем функцию, чтобы не было фейкового сообщения "Успех"
+                }
             },
             createOrder: (type, desc, refs) => api.postAction(`/api/order`, { customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type, description: desc, references: refs }),
             acceptOrder: (id, price, cur) => api.postAction(`/api/order/${id}/accept`, { price, currency: cur }),
@@ -183,6 +173,18 @@
         };
 
         const UI = {
+            showAlert: (message) => {
+                const root = document.getElementById('modal-root');
+                root.innerHTML = `
+                    <div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
+                        <div class="bg-white dark:bg-darkSurface dark:text-gray-100 p-6 rounded-3xl shadow-xl max-w-sm w-full border border-primaryPink/20 animate-[slideUp_0.2s_ease-out]">
+                            <h3 class="font-bold text-lg mb-2">Внимание</h3>
+                            <p class="text-sm opacity-80 mb-6">${message}</p>
+                            <button onclick="document.getElementById('modal-root').innerHTML=''" class="w-full bg-primaryPink text-textDark font-bold py-3 rounded-xl active:scale-95 transition-transform">OK</button>
+                        </div>
+                    </div>
+                `;
+            },
             showConfirm: (msg, onConfirm) => {
                 const root = document.getElementById('modal-root');
                 window._cf = () => { root.innerHTML = ''; onConfirm(); };
@@ -470,11 +472,16 @@
                 state.draftImages = await Promise.all(files.map(f => compressImage(f)));
                 document.getElementById('uploadLabel').innerText = `${state.draftImages.length} ${t('filesAttached')}`;
             },
-            submitOrder: (e) => {
+            submitOrder: async (e) => {
                 e.preventDefault();
-                api.createOrder(document.getElementById('formType').value, document.getElementById('formDesc').value, state.draftImages);
-                if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else alert(t('orderSent'));
-                state.draftImages = []; document.getElementById('orderForm').reset(); App.switchTab('profile'); 
+                try {
+                    await api.createOrder(document.getElementById('formType').value, document.getElementById('formDesc').value, state.draftImages);
+                    state.draftImages = []; document.getElementById('orderForm').reset(); 
+                    if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else UI.showAlert(t('orderSent'));
+                    App.switchTab('profile'); 
+                } catch(err) {
+                    // Ошибка уже выведена в api.postAction
+                }
             },
             acceptCurrentOrder: () => {
                 const p = parseFloat(document.getElementById('priceInput').value);
@@ -509,3 +516,4 @@
     </script>
 </body>
 </html>
+И кстати я нашёл проблему, почему-то заказы вообще не появляются и не доходят, я запустил скрипт питона и там ничего не отобразилось после 4 моих сделанных заказов в телеграмме
