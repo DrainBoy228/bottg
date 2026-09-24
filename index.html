@@ -12,22 +12,23 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        bgCream: '#FDFBF7', primaryPink: '#F4C7CC', textDark: '#4A4345', softRed: '#ffc1c1', softRedText: '#d9534f',
-                    },
-                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'], }
+                    colors: { bgCream: '#FDFBF7', primaryPink: '#F4C7CC', textDark: '#4A4345', softRed: '#ffc1c1', softRedText: '#d9534f' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
                 }
             }
         }
     </script>
     <style>
-        body { background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); }
+        /* ИСПРАВЛЕНИЕ СКРОЛЛА: Жестко фиксируем body */
+        body { background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        #app-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
         .glowing-dot { box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC; animation: pulse-glow 2s infinite; }
         @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
-        .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; transition: border-color 0.2s ease; outline: none; }
+        .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; outline: none; }
         .custom-input:focus { border-color: #F4C7CC; }
         
         .dark { background-color: #1E1A1B; color: #E8E4E5; }
@@ -45,64 +46,37 @@
         .dark .custom-input:focus { border-color: #A5737A !important; }
         .dark nav { background-color: #2A2426 !important; border-color: rgba(165,115,122,0.3) !important; }
         .dark #app-header { background-color: rgba(30, 26, 27, 0.9) !important; border-color: rgba(165,115,122,0.3) !important; }
-        .dark .glowing-dot { box-shadow: 0 0 8px #A5737A, 0 0 12px #A5737A !important; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-primaryPink selection:text-textDark overflow-x-hidden transition-colors duration-300">
+<body class="selection:bg-primaryPink selection:text-textDark transition-colors duration-300">
 
-    <div id="app-header" class="sticky top-0 z-20 bg-bgCream/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></div>
-    <main id="app-content" class="flex-1 w-full max-w-lg mx-auto relative pb-24"></main>
-    <nav id="app-bottom-nav" class="fixed bottom-0 w-full max-w-lg left-1/2 -translate-x-1/2 bg-white border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-safe"></nav>
+    <div id="app-header" class="shrink-0 z-20 bg-bgCream/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></div>
+    <main id="app-content" class="w-full max-w-lg mx-auto relative pb-20"></main>
+    <nav id="app-bottom-nav" class="shrink-0 w-full max-w-lg mx-auto bg-white border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-[env(safe-area-inset-bottom)]"></nav>
 
     <script>
         const ARTIST_TELEGRAM_ID = 5800436089; 
         const API_URL = "http://127.0.0.1:8000";
 
         const tg = window.Telegram?.WebApp;
-        if (tg) {
-            tg.expand();
-            tg.ready();
-            try { tg.setHeaderColor('#FDFBF7'); } catch (e) {}
-        }
+        if (tg) { tg.expand(); tg.ready(); try { tg.setHeaderColor('#FDFBF7'); } catch (e) {} }
 
         const initData = tg?.initDataUnsafe || {};
         const tgUser = initData?.user?.id || Math.floor(Math.random() * 1000000000);
         const tgUserName = initData?.user?.first_name || 'Guest';
         const tgPhoto = initData?.user?.photo_url || null;
+        const tgInitDataRaw = tg?.initData || ""; // Строка для безопасности
 
         const currentRole = (tgUser === ARTIST_TELEGRAM_ID) ? 'artist' : 'customer';
 
         let state = {
-            lang: 'ru',
-            isDark: false,
-            tab: currentRole === 'artist' ? 'new_requests' : 'order_art',
-            view: 'main',
-            activeOrderId: null,
-            mockOrders: [], 
-            draftFiles: 0,
-            showSubmitModal: false,
-            _lastDataStr: ""
+            lang: 'ru', isDark: false, tab: currentRole === 'artist' ? 'new_requests' : 'order_art',
+            view: 'main', activeOrderId: null, mockOrders: [], 
+            draftFilesData: [], // Сохраняем Base64 фоток
+            showSubmitModal: false, _lastDataStr: ""
         };
 
         const i18n = {
-            en: {
-                appTitle: 'Commission Studio', tabOrder: 'Order Art', tabProfile: 'Profile', tabNew: 'New Requests', tabActive: 'Active Works',
-                emptyOrdersTitle: 'No Orders Yet', emptyOrdersDesc: 'Fill out the form to commission your first artwork.',
-                emptyNewTitle: 'All Caught Up!', emptyNewDesc: 'No new requests right now. Time to relax!',
-                emptyActiveTitle: 'No Active Works', emptyActiveDesc: 'Accept some requests to see them here.',
-                formTitle: 'Request a Commission', artType: 'Art Type',
-                types: { portrait: 'Portrait', halfBody: 'Half Body', fullBody: 'Full Body', chibi: 'Chibi', sketch: 'Sketch', other: 'Other' },
-                description: 'Description (Characters, poses, details...)', uploadBtn: 'Upload References', submitBtn: 'Submit Request',
-                filesAttached: 'files attached', stats: 'Your Stats', totalOrdered: 'Total Ordered', language: 'Language', orderHistory: 'Order History',
-                setPrice: 'Set Price', acceptOrder: 'Accept Order', declineOrder: 'Decline', banUser: 'Ban User',
-                unread: 'New', pending: 'Pending', accepted: 'Accepted', chatPlaceholder: 'Type a message...', send: 'Send',
-                priceSetAt: 'Price:', back: 'Back', status: 'Status', success: 'Success!', orderSent: 'Your request has been sent.',
-                darkMode: 'Dark Mode', tabBanned: 'Banned', unban: 'Unban', byn: 'BYN', stars: 'Stars', emptyBannedTitle: 'No Banned Users',
-                emptyBannedDesc: 'You have not banned anyone.', currency: 'Currency', banned: 'Banned',
-                cancelOrder: 'Cancel Order', submitArt: 'Submit Artwork', watermarkWarning: 'WARNING: Did you add a watermark?',
-                finalPrice: 'Final Price', requestRevision: 'Request Revision', approvePay: 'Approve & Pay', cancelled: 'Cancelled',
-                in_review: 'In Review', completed: 'Completed', waitingReview: 'Waiting for Customer Review', confirmCancel: 'Are you sure you want to cancel this order?'
-            },
             ru: {
                 appTitle: 'Арт Студия', tabOrder: 'Заказать', tabProfile: 'Профиль', tabNew: 'Новые заявки', tabActive: 'В работе',
                 emptyOrdersTitle: 'Пока нет заказов', emptyOrdersDesc: 'Заполните форму, чтобы сделать первый заказ.',
@@ -110,29 +84,49 @@
                 emptyActiveTitle: 'Нет активных заказов', emptyActiveDesc: 'Примите заявки, чтобы они появились здесь.',
                 formTitle: 'Оформить заказ', artType: 'Тип арта',
                 types: { portrait: 'Портрет', halfBody: 'По пояс', fullBody: 'В полный рост', chibi: 'Чиби', sketch: 'Скетч', other: 'Другое' },
-                description: 'Описание (Персонажи, позы, детали...)', uploadBtn: 'Загрузить референсы', submitBtn: 'Отправить заявку',
-                filesAttached: 'файлов прикреплено', stats: 'Ваша статистика', totalOrdered: 'Всего заказов', language: 'Язык', orderHistory: 'История заказов',
+                description: 'Описание (Персонажи, позы...)', uploadBtn: 'Прикрепить референсы', submitBtn: 'Отправить заявку',
+                filesAttached: 'фото прикреплено', stats: 'Статистика', totalOrdered: 'Всего заказов', orderHistory: 'История',
                 setPrice: 'Указать цену', acceptOrder: 'Принять заказ', declineOrder: 'Отклонить', banUser: 'Забанить',
-                unread: 'Новое', pending: 'Ожидает', accepted: 'В работе', chatPlaceholder: 'Введите сообщение...', send: 'Отправить',
-                priceSetAt: 'Цена:', back: 'Назад', status: 'Статус', success: 'Успешно!', orderSent: 'Ваша заявка отправлена.',
-                darkMode: 'Темная тема', tabBanned: 'В бане', unban: 'Разблокировать', byn: 'BYN', stars: 'Звезды', emptyBannedTitle: 'Нет заблокированных',
-                emptyBannedDesc: 'Список заблокированных пуст.', currency: 'Валюта', banned: 'Заблокирован',
+                unread: 'Новое', pending: 'Ожидает', accepted: 'В работе', chatPlaceholder: 'Сообщение...', send: 'Отправить',
+                priceSetAt: 'Цена:', back: 'Назад', darkMode: 'Темная тема', tabBanned: 'В бане', unban: 'Разблокировать', 
+                emptyBannedTitle: 'Нет заблокированных', emptyBannedDesc: 'Список заблокированных пуст.',
                 cancelOrder: 'Отменить заказ', submitArt: 'Сдать работу', watermarkWarning: 'ВНИМАНИЕ: Вы поставили водяной знак?',
-                finalPrice: 'Итоговая цена', requestRevision: 'Доработать (Правки)', approvePay: 'Одобрить и Оплатить', cancelled: 'Отменен',
-                in_review: 'На проверке', completed: 'Завершен', waitingReview: 'Ожидает проверки клиентом', confirmCancel: 'Вы уверены, что хотите отменить этот заказ?'
+                finalPrice: 'Итоговая цена', requestRevision: 'Доработать', approvePay: 'Одобрить', cancelled: 'Отменен',
+                in_review: 'На проверке', completed: 'Завершен', waitingReview: 'Ожидает проверки клиентом', confirmCancel: 'Отменить этот заказ?'
+            },
+            en: {
+                appTitle: 'Commission Studio', tabOrder: 'Order Art', tabProfile: 'Profile', tabNew: 'New Requests', tabActive: 'Active Works',
+                emptyOrdersTitle: 'No Orders Yet', emptyOrdersDesc: 'Fill out the form to commission your first artwork.',
+                emptyNewTitle: 'All Caught Up!', emptyNewDesc: 'No new requests right now. Time to relax!',
+                emptyActiveTitle: 'No Active Works', emptyActiveDesc: 'Accept some requests to see them here.',
+                formTitle: 'Request a Commission', artType: 'Art Type',
+                types: { portrait: 'Portrait', halfBody: 'Half Body', fullBody: 'Full Body', chibi: 'Chibi', sketch: 'Sketch', other: 'Other' },
+                description: 'Description (Characters, poses...)', uploadBtn: 'Upload References', submitBtn: 'Submit Request',
+                filesAttached: 'photos attached', stats: 'Stats', totalOrdered: 'Total Ordered', orderHistory: 'History',
+                setPrice: 'Set Price', acceptOrder: 'Accept Order', declineOrder: 'Decline', banUser: 'Ban User',
+                unread: 'New', pending: 'Pending', accepted: 'Accepted', chatPlaceholder: 'Message...', send: 'Send',
+                priceSetAt: 'Price:', back: 'Back', darkMode: 'Dark Mode', tabBanned: 'Banned', unban: 'Unban', 
+                emptyBannedTitle: 'No Banned Users', emptyBannedDesc: 'You have not banned anyone.',
+                cancelOrder: 'Cancel Order', submitArt: 'Submit Artwork', watermarkWarning: 'WARNING: Did you add a watermark?',
+                finalPrice: 'Final Price', requestRevision: 'Request Revision', approvePay: 'Approve', cancelled: 'Cancelled',
+                in_review: 'In Review', completed: 'Completed', waitingReview: 'Waiting for Customer Review', confirmCancel: 'Cancel this order?'
             }
         };
 
-        const t = (key, nestedKey = null) => {
-            const strings = i18n[state.lang];
-            if (nestedKey) return strings[key][nestedKey] || strings[key] || key;
-            return strings[key] || key;
-        };
+        const t = (key, nestedKey = null) => { const str = i18n[state.lang]; return nestedKey ? (str[key][nestedKey] || key) : (str[key] || key); };
+
+        // Конвертер файлов в Base64
+        const fileToBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
 
         const api = {
             sync: async () => {
                 try {
-                    const res = await fetch(`${API_URL}/api/sync?user_id=${tgUser}`);
+                    const res = await fetch(`${API_URL}/api/sync?user_id=${tgUser}&init_data=${encodeURIComponent(tgInitDataRaw)}`);
                     if (res.ok) {
                         const data = await res.json();
                         const newDataStr = JSON.stringify(data.orders);
@@ -145,131 +139,70 @@
                                     chatDiv.innerHTML = renderChatMessagesOnly();
                                     chatDiv.scrollTop = chatDiv.scrollHeight;
                                 }
-                            } else {
-                                App.render();
-                            }
+                            } else App.render();
                         }
                     }
-                } catch (e) { console.log("Waiting for server..."); }
+                } catch (e) {}
             },
-            createOrder: async (type, desc) => {
-                await fetch(`${API_URL}/api/order`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type: type, description: desc }) });
+            postAction: async (endpoint, payload = {}) => {
+                payload.initData = tgInitDataRaw; // Прикрепляем ключ ко всем запросам
+                await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
                 await api.sync();
             },
-            acceptOrder: async (orderId, price, currency) => {
-                await fetch(`${API_URL}/api/order/${orderId}/accept`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ price, currency }) });
-                await api.sync();
-            },
-            declineOrder: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/decline`, { method: 'POST' }); await api.sync(); },
-            cancelOrder: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/cancel`, { method: 'POST' }); await api.sync(); },
-            submitFinalArt: async (orderId, finalPrice) => {
-                await fetch(`${API_URL}/api/order/${orderId}/submit`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ finalPrice }) });
-                await api.sync();
-            },
-            requestRevision: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/revision`, { method: 'POST' }); await api.sync(); },
-            completeOrder: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/complete`, { method: 'POST' }); await api.sync(); },
-            banUser: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/ban`, { method: 'POST' }); await api.sync(); },
-            unbanUser: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/unban`, { method: 'POST' }); await api.sync(); },
-            markAsRead: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/read`, { method: 'POST' }); await api.sync(); },
-            sendMessage: async (orderId, text) => {
-                await fetch(`${API_URL}/api/order/${orderId}/message`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text, sender: currentRole }) });
-                await api.sync();
-            }
+            createOrder: (type, desc, refs) => api.postAction(`/api/order`, { customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type, description: desc, references: refs }),
+            acceptOrder: (id, price, cur) => api.postAction(`/api/order/${id}/accept`, { price, currency: cur }),
+            cancelOrder: (id) => api.postAction(`/api/order/${id}/cancel`),
+            declineOrder: (id) => api.postAction(`/api/order/${id}/decline`),
+            submitFinalArt: (id, price) => api.postAction(`/api/order/${id}/submit`, { price }),
+            requestRevision: (id) => api.postAction(`/api/order/${id}/revision`),
+            completeOrder: (id) => api.postAction(`/api/order/${id}/complete`),
+            banUser: (id) => api.postAction(`/api/order/${id}/ban`),
+            unbanUser: (id) => api.postAction(`/api/order/${id}/unban`),
+            markAsRead: (id) => api.postAction(`/api/order/${id}/read`),
+            sendMessage: (id, text, photoStr) => api.postAction(`/api/order/${id}/message`, { text, sender: currentRole, photo: photoStr })
         };
 
-        const formatDate = (isoString) => {
-            if (!isoString) return '';
-            const date = new Date(isoString);
-            return date.toLocaleDateString(state.lang === 'en' ? 'en-US' : 'ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        };
-        
-        const formatPrice = (price, currency) => {
-            if (!price) return '';
-            return currency === 'Stars' ? `${price} ⭐` : `${price} BYN`;
-        };
+        const formatPrice = (price, cur) => price ? (cur === 'Stars' ? `${price} ⭐` : `${price} ${cur}`) : '';
 
         function renderHeader() {
             const header = document.getElementById('app-header');
             if (state.view !== 'main') {
-                const activeOrder = state.mockOrders.find(o => o.id === state.activeOrderId);
+                const order = state.mockOrders.find(o => o.id === state.activeOrderId);
                 let extraInfo = '';
                 let cancelBtn = '';
-                
-                if (activeOrder) {
-                    if (state.view === 'chat' && activeOrder.price && ['accepted', 'in_review'].includes(activeOrder.status)) {
-                        extraInfo = `<div class="bg-primaryPink/20 text-primaryPink font-bold px-3 py-1 rounded-full text-sm shadow-sm">${formatPrice(activeOrder.price, activeOrder.currency)}</div>`;
+                if (order) {
+                    if (state.view === 'chat' && order.price && ['accepted', 'in_review'].includes(order.status)) {
+                        extraInfo = `<div class="bg-primaryPink/20 text-primaryPink font-bold px-3 py-1 rounded-full text-sm">${formatPrice(order.price, order.currency)}</div>`;
                     }
-                    if (['pending', 'accepted'].includes(activeOrder.status)) {
-                        cancelBtn = `<button onclick="App.cancelCurrentOrder()" class="p-2 text-softRedText hover:bg-softRed/10 rounded-full transition-colors" title="${t('cancelOrder')}"><i data-lucide="x-circle" class="w-6 h-6"></i></button>`;
+                    if (['pending', 'accepted'].includes(order.status)) {
+                        cancelBtn = `<button onclick="App.cancelCurrentOrder()" class="p-2 text-softRedText hover:bg-softRed/10 rounded-full"><i data-lucide="x-circle" class="w-6 h-6"></i></button>`;
                     }
                 }
-
-                header.innerHTML = `
-                    <div class="flex items-center">
-                        <button onclick="App.goBack()" class="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 transition-colors">
-                            <i data-lucide="chevron-left" class="w-6 h-6 text-textDark"></i>
-                        </button>
-                        <h1 class="font-bold text-lg text-textDark truncate mx-2">${activeOrder ? t('types', activeOrder.type) : t('back')}</h1>
-                        ${extraInfo}
-                    </div>
-                    <div>${cancelBtn}</div>
-                `;
+                header.innerHTML = `<div class="flex items-center"><button onclick="App.goBack()" class="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><i data-lucide="chevron-left" class="w-6 h-6"></i></button><h1 class="font-bold text-lg truncate mx-2">${order ? t('types', order.type) : t('back')}</h1>${extraInfo}</div><div>${cancelBtn}</div>`;
             } else {
-                let rightAction = '';
-                if (currentRole === 'artist') {
-                    rightAction = `
-                        <button onclick="App.toggleTheme()" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-primaryPink/20">
-                            <i data-lucide="${state.isDark ? 'sun' : 'moon'}" class="w-5 h-5 text-textDark"></i>
-                        </button>
-                    `;
-                }
-                
-                header.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-primaryPink rounded-2xl flex items-center justify-center shadow-sm">
-                            <i data-lucide="palette" class="w-6 h-6 text-textDark"></i>
-                        </div>
-                        <h1 class="font-bold text-xl text-textDark tracking-tight">${t('appTitle')}</h1>
-                    </div>
-                    <div class="flex items-center gap-2 text-sm font-medium opacity-80">${rightAction}</div>
-                `;
+                let rightAction = currentRole === 'artist' ? `<button onclick="App.toggleTheme()" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 border border-primaryPink/20"><i data-lucide="${state.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i></button>` : '';
+                header.innerHTML = `<div class="flex items-center gap-3"><div class="w-10 h-10 bg-primaryPink rounded-2xl flex items-center justify-center"><i data-lucide="palette" class="w-6 h-6"></i></div><h1 class="font-bold text-xl">${t('appTitle')}</h1></div><div class="flex items-center gap-2 text-sm">${rightAction}</div>`;
             }
         }
 
         function renderBottomNav() {
             const nav = document.getElementById('app-bottom-nav');
             if (state.view !== 'main') { nav.innerHTML = ''; return; }
-
             let tabsHTML = '';
             if (currentRole === 'artist') {
-                const unreadCount = state.mockOrders.filter(o => o.status === 'pending' && !o.isRead).length;
+                const unread = state.mockOrders.filter(o => o.status === 'pending' && !o.isRead).length;
                 tabsHTML = `
-                    <button onclick="App.switchTab('new_requests')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'new_requests' ? 'text-textDark opacity-100' : 'text-textDark opacity-40'}">
-                        <div class="relative">
-                            <i data-lucide="inbox" class="w-6 h-6"></i>
-                            ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 w-3 h-3 bg-primaryPink rounded-full glowing-dot border-2 border-white dark:border-transparent"></span>` : ''}
-                        </div>
+                    <button onclick="App.switchTab('new_requests')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'new_requests' ? 'opacity-100' : 'opacity-40'}">
+                        <div class="relative"><i data-lucide="inbox" class="w-6 h-6"></i>${unread > 0 ? `<span class="absolute -top-1 -right-1 w-3 h-3 bg-primaryPink rounded-full glowing-dot border-2 border-white dark:border-transparent"></span>` : ''}</div>
                         <span class="text-[10px] font-semibold">${t('tabNew')}</span>
                     </button>
-                    <button onclick="App.switchTab('active_works')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'active_works' ? 'text-textDark opacity-100' : 'text-textDark opacity-40'}">
-                        <i data-lucide="paintbrush" class="w-6 h-6"></i>
-                        <span class="text-[10px] font-semibold">${t('tabActive')}</span>
-                    </button>
-                    <button onclick="App.switchTab('banned')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'banned' ? 'text-softRedText opacity-100' : 'text-textDark opacity-40'}">
-                        <i data-lucide="shield-alert" class="w-6 h-6"></i>
-                        <span class="text-[10px] font-semibold">${t('tabBanned')}</span>
-                    </button>
+                    <button onclick="App.switchTab('active_works')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'active_works' ? 'opacity-100' : 'opacity-40'}"><i data-lucide="paintbrush" class="w-6 h-6"></i><span class="text-[10px] font-semibold">${t('tabActive')}</span></button>
+                    <button onclick="App.switchTab('banned')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'banned' ? 'text-softRedText opacity-100' : 'opacity-40'}"><i data-lucide="shield-alert" class="w-6 h-6"></i><span class="text-[10px] font-semibold">${t('tabBanned')}</span></button>
                 `;
             } else {
                 tabsHTML = `
-                    <button onclick="App.switchTab('order_art')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'order_art' ? 'text-textDark opacity-100' : 'text-textDark opacity-40'}">
-                        <i data-lucide="pen-tool" class="w-6 h-6"></i>
-                        <span class="text-[10px] font-semibold">${t('tabOrder')}</span>
-                    </button>
-                    <button onclick="App.switchTab('profile')" class="flex-1 py-4 flex flex-col items-center gap-1 transition-opacity ${state.tab === 'profile' ? 'text-textDark opacity-100' : 'text-textDark opacity-40'}">
-                        <i data-lucide="user" class="w-6 h-6"></i>
-                        <span class="text-[10px] font-semibold">${t('tabProfile')}</span>
-                    </button>
+                    <button onclick="App.switchTab('order_art')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'order_art' ? 'opacity-100' : 'opacity-40'}"><i data-lucide="pen-tool" class="w-6 h-6"></i><span class="text-[10px] font-semibold">${t('tabOrder')}</span></button>
+                    <button onclick="App.switchTab('profile')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'profile' ? 'opacity-100' : 'opacity-40'}"><i data-lucide="user" class="w-6 h-6"></i><span class="text-[10px] font-semibold">${t('tabProfile')}</span></button>
                 `;
             }
             nav.innerHTML = `<div class="flex justify-between px-4">${tabsHTML}</div>`;
@@ -277,31 +210,31 @@
 
         function renderCustomerForm() {
             return `
-                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <div class="p-4 space-y-6">
                     <div class="bg-white p-6 rounded-3xl shadow-sm border border-primaryPink/10">
                         <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="sparkles" class="w-5 h-5 text-primaryPink"></i> ${t('formTitle')}</h2>
                         <form id="orderForm" onsubmit="App.submitOrder(event)" class="space-y-5">
                             <div>
-                                <label class="block text-sm font-semibold mb-2 ml-1 text-textDark/80">${t('artType')}</label>
+                                <label class="block text-sm font-semibold mb-2 ml-1 opacity-80">${t('artType')}</label>
                                 <div class="relative">
-                                    <select id="formType" required class="custom-input appearance-none cursor-pointer">
-                                        <option value="portrait">${t('types', 'portrait')}</option>
-                                        <option value="halfBody">${t('types', 'halfBody')}</option>
-                                        <option value="fullBody">${t('types', 'fullBody')}</option>
-                                        <option value="chibi">${t('types', 'chibi')}</option>
-                                        <option value="sketch">${t('types', 'sketch')}</option>
-                                        <option value="other">${t('types', 'other')}</option>
+                                    <select id="formType" required class="custom-input appearance-none">
+                                        <option value="portrait">${t('types', 'portrait')}</option><option value="halfBody">${t('types', 'halfBody')}</option><option value="fullBody">${t('types', 'fullBody')}</option><option value="chibi">${t('types', 'chibi')}</option><option value="sketch">${t('types', 'sketch')}</option><option value="other">${t('types', 'other')}</option>
                                     </select>
-                                    <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none opacity-50"></i>
+                                    <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-50 pointer-events-none"></i>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold mb-2 ml-1 text-textDark/80">${t('description')}</label>
+                                <label class="block text-sm font-semibold mb-2 ml-1 opacity-80">${t('description')}</label>
                                 <textarea id="formDesc" required rows="4" class="custom-input resize-none" placeholder="..."></textarea>
                             </div>
-                            <button type="submit" class="w-full bg-primaryPink text-textDark font-bold py-4 rounded-xl shadow-[0_4px_14px_rgba(244,199,204,0.4)] hover:shadow-md active:scale-[0.98] transition-all flex justify-center items-center gap-2">
-                                <i data-lucide="send" class="w-5 h-5"></i> ${t('submitBtn')}
-                            </button>
+                            <div>
+                                <label class="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-primaryPink/40 rounded-xl bg-primaryPink/5 cursor-pointer hover:bg-primaryPink/10">
+                                    <i data-lucide="image-plus" class="w-5 h-5"></i>
+                                    <span class="font-medium text-sm" id="uploadLabel">${state.draftFilesData.length > 0 ? `${state.draftFilesData.length}${t('filesAttached')}` : t('uploadBtn')}</span>
+                                    <input type="file" class="hidden" accept="image/*" multiple onchange="App.handleFormFileUpload(event)">
+                                </label>
+                            </div>
+                            <button type="submit" class="w-full bg-primaryPink text-textDark font-bold py-4 rounded-xl active:scale-[0.98] flex justify-center gap-2"><i data-lucide="send" class="w-5 h-5"></i> ${t('submitBtn')}</button>
                         </form>
                     </div>
                 </div>
@@ -310,49 +243,32 @@
 
         function renderCustomerProfile() {
             const userOrders = state.mockOrders.filter(o => o.customerId === tgUser);
-            let historyHTML = '';
-            
-            if (userOrders.length === 0) {
-                historyHTML = renderEmptyState(t('emptyOrdersTitle'), t('emptyOrdersDesc'), 'history');
-            } else {
-                historyHTML = userOrders.slice().reverse().map(o => `
-                    <div onclick="App.openOrder('${o.id}')" class="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-primaryPink/10 cursor-pointer hover:border-primaryPink transition-colors flex items-center justify-between">
+            let historyHTML = userOrders.length === 0 ? renderEmptyState(t('emptyOrdersTitle'), t('emptyOrdersDesc'), 'history') : 
+                userOrders.slice().reverse().map(o => `
+                    <div onclick="App.openOrder('${o.id}')" class="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-primaryPink/10 cursor-pointer flex items-center justify-between">
                         <div>
                             <div class="font-bold text-lg mb-1">${t('types', o.type)}</div>
-                            <div class="text-xs font-medium px-2 py-1 bg-bgCream inline-block rounded-md border border-primaryPink/20 text-textDark/70">
-                                ${t(o.status)}
-                            </div>
+                            <div class="text-xs font-medium px-2 py-1 bg-bgCream inline-block rounded-md border border-primaryPink/20">${t(o.status)}</div>
                         </div>
                         <div class="flex items-center gap-3">
                             ${o.price ? `<span class="font-bold text-primaryPink">${formatPrice(o.price, o.currency)}</span>` : ''}
-                            <i data-lucide="chevron-right" class="w-5 h-5 text-textDark/30"></i>
+                            <i data-lucide="chevron-right" class="w-5 h-5 opacity-30"></i>
                         </div>
                     </div>
                 `).join('');
-            }
 
-            const avatarHTML = tgPhoto 
-                ? `<img src="${tgPhoto}" class="w-14 h-14 rounded-full border-2 border-primaryPink object-cover shadow-sm">`
-                : `<div class="w-14 h-14 bg-bgCream rounded-full border-2 border-primaryPink flex items-center justify-center"><i data-lucide="user" class="w-6 h-6 text-primaryPink"></i></div>`;
+            const avatarHTML = tgPhoto ? `<img src="${tgPhoto}" class="w-14 h-14 rounded-full border-2 border-primaryPink object-cover shadow-sm">` : `<div class="w-14 h-14 bg-bgCream rounded-full border-2 border-primaryPink flex items-center justify-center"><i data-lucide="user" class="w-6 h-6 text-primaryPink"></i></div>`;
 
             return `
-                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <div class="p-4 space-y-6">
                     <div class="bg-white p-5 rounded-3xl shadow-sm border border-primaryPink/10 flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            ${avatarHTML}
-                            <div>
-                                <h3 class="font-bold text-lg">${tgUserName}</h3>
-                                <p class="text-sm opacity-60">ID: ${tgUser}</p>
-                            </div>
-                        </div>
+                        <div class="flex items-center gap-4">${avatarHTML}<div><h3 class="font-bold text-lg">${tgUserName}</h3></div></div>
                         <div class="flex flex-col gap-2 items-end">
                             <div class="flex bg-bgCream rounded-lg p-1 border border-primaryPink/20">
-                                <button onclick="App.setLang('en')" class="px-3 py-1 rounded-md text-sm font-bold transition-colors ${state.lang === 'en' ? 'bg-primaryPink text-textDark shadow-sm' : 'text-textDark/50'}">EN</button>
-                                <button onclick="App.setLang('ru')" class="px-3 py-1 rounded-md text-sm font-bold transition-colors ${state.lang === 'ru' ? 'bg-primaryPink text-textDark shadow-sm' : 'text-textDark/50'}">RU</button>
+                                <button onclick="App.setLang('en')" class="px-3 py-1 rounded-md text-sm font-bold ${state.lang === 'en' ? 'bg-primaryPink text-textDark shadow-sm' : 'opacity-50'}">EN</button>
+                                <button onclick="App.setLang('ru')" class="px-3 py-1 rounded-md text-sm font-bold ${state.lang === 'ru' ? 'bg-primaryPink text-textDark shadow-sm' : 'opacity-50'}">RU</button>
                             </div>
-                            <button onclick="App.toggleTheme()" class="flex items-center gap-2 text-xs font-bold bg-bgCream px-3 py-1.5 rounded-lg border border-primaryPink/20 hover:border-primaryPink transition-colors">
-                                <i data-lucide="${state.isDark ? 'sun' : 'moon'}" class="w-3.5 h-3.5"></i> ${t('darkMode')}
-                            </button>
+                            <button onclick="App.toggleTheme()" class="flex items-center gap-2 text-xs font-bold bg-bgCream px-3 py-1.5 rounded-lg border border-primaryPink/20"><i data-lucide="${state.isDark ? 'sun' : 'moon'}" class="w-3.5 h-3.5"></i> ${t('darkMode')}</button>
                         </div>
                     </div>
                     <div>
@@ -364,143 +280,78 @@
         }
 
         function renderEmptyState(title, desc, iconName) {
-            return `
-                <div class="flex flex-col items-center justify-center p-10 text-center animate-[fadeIn_0.5s_ease-out]">
-                    <div class="w-24 h-24 bg-primaryPink/10 rounded-full flex items-center justify-center mb-6">
-                        <i data-lucide="${iconName}" class="w-12 h-12 text-primaryPink"></i>
-                    </div>
-                    <h3 class="font-bold text-xl mb-2">${title}</h3>
-                    <p class="text-textDark/60 text-sm max-w-[200px] leading-relaxed">${desc}</p>
-                </div>
-            `;
+            return `<div class="flex flex-col items-center justify-center p-10 text-center"><div class="w-24 h-24 bg-primaryPink/10 rounded-full flex items-center justify-center mb-6"><i data-lucide="${iconName}" class="w-12 h-12 text-primaryPink"></i></div><h3 class="font-bold text-xl mb-2">${title}</h3><p class="text-sm opacity-60 max-w-[200px] leading-relaxed">${desc}</p></div>`;
         }
 
         function renderArtistList() {
-            const isNewTab = state.tab === 'new_requests';
-            const isBannedTab = state.tab === 'banned';
-            
-            // Фильтр статусов. У художника во вкладке "В работе" теперь лежат и accepted, и in_review, и completed.
-            let statusFilter = [];
-            if (isNewTab) statusFilter = ['pending'];
-            else if (isBannedTab) statusFilter = ['banned'];
-            else statusFilter = ['accepted', 'in_review', 'completed', 'cancelled'];
-            
+            const statusFilter = state.tab === 'new_requests' ? ['pending'] : (state.tab === 'banned' ? ['banned'] : ['accepted', 'in_review', 'completed', 'cancelled']);
             const orders = state.mockOrders.filter(o => statusFilter.includes(o.status)).slice().reverse();
 
-            if (orders.length === 0) {
-                let emptyTitle = isNewTab ? t('emptyNewTitle') : t('emptyActiveTitle');
-                let emptyDesc = isNewTab ? t('emptyNewDesc') : t('emptyActiveDesc');
-                let emptyIcon = isNewTab ? 'coffee' : 'check-circle-2';
-                if (isBannedTab) { emptyTitle = t('emptyBannedTitle'); emptyDesc = t('emptyBannedDesc'); emptyIcon = 'shield-check'; }
-                return renderEmptyState(emptyTitle, emptyDesc, emptyIcon);
-            }
+            if (orders.length === 0) return renderEmptyState(
+                state.tab === 'new_requests' ? t('emptyNewTitle') : (state.tab === 'banned' ? t('emptyBannedTitle') : t('emptyActiveTitle')),
+                state.tab === 'new_requests' ? t('emptyNewDesc') : (state.tab === 'banned' ? t('emptyBannedDesc') : t('emptyActiveDesc')),
+                state.tab === 'new_requests' ? 'coffee' : (state.tab === 'banned' ? 'shield-check' : 'check-circle-2')
+            );
 
-            return `
-                <div class="p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">
-                    ${orders.map(o => {
-                        const isDimmed = ['completed', 'cancelled'].includes(o.status);
-                        return `
-                        <div ${!isBannedTab ? `onclick="App.openOrder('${o.id}')"` : ''} class="bg-white p-5 rounded-2xl shadow-sm border ${!o.isRead && isNewTab ? 'border-primaryPink shadow-[0_0_10px_rgba(244,199,204,0.3)]' : 'border-primaryPink/10'} ${!isBannedTab ? 'cursor-pointer hover:border-primaryPink' : ''} transition-all relative overflow-hidden group ${isDimmed ? 'opacity-60' : ''}">
-                            ${!o.isRead && isNewTab ? `<div class="absolute top-5 right-5 w-3 h-3 bg-primaryPink rounded-full glowing-dot"></div>` : ''}
-                            
-                            <div class="flex justify-between items-start mb-3 pr-6">
-                                <div>
-                                    <h3 class="font-bold text-lg">${t('types', o.type)}</h3>
-                                    <div class="flex items-center gap-2 mt-0.5">
-                                        ${o.customerPhoto ? `<img src="${o.customerPhoto}" class="w-4 h-4 rounded-full object-cover border border-primaryPink/20">` : `<i data-lucide="user" class="w-3 h-3 opacity-60"></i>`}
-                                        <p class="text-xs font-medium opacity-60">От: ${o.customerName}</p>
-                                    </div>
-                                </div>
-                                ${o.price ? `<span class="font-bold bg-primaryPink/20 text-textDark px-3 py-1 rounded-xl text-sm border border-primaryPink/30">${formatPrice(o.price, o.currency)}</span>` : ''}
-                            </div>
-                            
-                            <p class="text-sm opacity-80 line-clamp-2 leading-relaxed bg-bgCream/50 p-3 rounded-xl border border-primaryPink/5">${o.description}</p>
-                            
-                            <div class="mt-4 flex items-center justify-between text-xs font-medium">
-                                <span class="bg-bgCream px-2 py-1 rounded-md border border-primaryPink/20">${t(o.status)}</span>${isBannedTab ? `
-                                    <button onclick="App.unbanUser('${o.id}')" class="px-4 py-2 bg-textDark text-bgCream dark:bg-white dark:text-textDark rounded-lg font-bold shadow-md hover:scale-105 active:scale-95 transition-all">
-                                        ${t('unban')}
-                                    </button>
-                                ` : `
-                                    <span class="flex items-center gap-1 group-hover:text-primaryPink transition-colors opacity-50">
-                                        ${isNewTab ? 'Проверить' : 'Открыть'} <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                                    </span>
-                                `}
-                            </div>
+            return `<div class="p-4 space-y-3">${orders.map(o => `
+                <div ${state.tab !== 'banned' ? `onclick="App.openOrder('${o.id}')"` : ''} class="bg-white p-5 rounded-2xl shadow-sm border ${!o.isRead && state.tab === 'new_requests' ? 'border-primaryPink' : 'border-primaryPink/10'} relative overflow-hidden${['completed', 'cancelled'].includes(o.status) ? 'opacity-60' : ''}">
+                    ${!o.isRead && state.tab === 'new_requests' ? `<div class="absolute top-5 right-5 w-3 h-3 bg-primaryPink rounded-full glowing-dot"></div>` : ''}
+                    <div class="flex justify-between items-start mb-3 pr-6">
+                        <div>
+                            <h3 class="font-bold text-lg">${t('types', o.type)}</h3>
+                            <div class="flex items-center gap-2 mt-0.5">${o.customerPhoto ? `<img src="${o.customerPhoto}" class="w-4 h-4 rounded-full object-cover">` : `<i data-lucide="user" class="w-3 h-3 opacity-60"></i>`}<p class="text-xs font-medium opacity-60">${o.customerName}</p></div>
                         </div>
-                        `
-                    }).join('')}
+                        ${o.price ? `<span class="font-bold bg-primaryPink/20 text-textDark px-3 py-1 rounded-xl text-sm border border-primaryPink/30">${formatPrice(o.price, o.currency)}</span>` : ''}
+                    </div>
+                    <p class="text-sm opacity-80 line-clamp-2 leading-relaxed bg-bgCream/50 p-3 rounded-xl border border-primaryPink/5">${o.description}</p>
+                    <div class="mt-4 flex items-center justify-between text-xs font-medium">
+                        <span class="bg-bgCream px-2 py-1 rounded-md border border-primaryPink/20">${t(o.status)}</span>${state.tab === 'banned' ? `<button onclick="App.unbanUser('${o.id}')" class="px-4 py-2 bg-textDark text-white dark:bg-white dark:text-textDark rounded-lg font-bold">${t('unban')}</button>` : `<span class="flex items-center gap-1 opacity-50">${state.tab === 'new_requests' ? 'Review' : 'Open'} <i data-lucide="arrow-right" class="w-3 h-3"></i></span>`}
+                    </div>
                 </div>
-            `;
+            `).join('')}</div>`;
         }
 
         function renderOrderDetail() {
             const order = state.mockOrders.find(o => o.id === state.activeOrderId);
             if (!order) return '';
 
-            const isArtist = currentRole === 'artist';
-            const isPending = order.status === 'pending';
             let actionArea = '';
-
-            if (isArtist && isPending) {
+            if (currentRole === 'artist' && order.status === 'pending') {
                 actionArea = `
                     <div class="mt-8 space-y-4">
                         <div class="bg-white p-5 rounded-2xl border border-primaryPink shadow-sm">
                             <label class="block text-sm font-bold mb-3">${t('setPrice')}</label>
                             <div class="flex gap-2">
-                                <div class="relative flex items-center flex-1">
-                                    <input type="number" id="priceInput" class="custom-input font-bold text-lg w-full" placeholder="0.00" min="1">
-                                </div>
-                                <div class="relative w-28">
-                                    <select id="currencyInput" class="custom-input font-bold w-full appearance-none cursor-pointer text-center">
-                                        <option value="BYN">BYN</option>
-                                        <option value="Stars">⭐</option>
-                                    </select>
-                                    <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none opacity-50"></i>
-                                </div>
+                                <input type="number" id="priceInput" class="custom-input font-bold text-lg flex-1" placeholder="0.00" min="1">
+                                <select id="currencyInput" class="custom-input font-bold w-28 appearance-none text-center"><option value="BYN">BYN</option><option value="Stars">⭐</option></select>
                             </div>
-                            <button onclick="App.acceptCurrentOrder()" class="w-full mt-4 bg-primaryPink text-textDark font-bold py-4 rounded-xl shadow-md active:scale-[0.98] transition-transform">
-                                ${t('acceptOrder')}
-                            </button>
+                            <button onclick="App.acceptCurrentOrder()" class="w-full mt-4 bg-primaryPink text-textDark font-bold py-4 rounded-xl active:scale-[0.98]">${t('acceptOrder')}</button>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
-                            <button onclick="App.declineCurrentOrder()" class="bg-white border-2 border-primaryPink/20 font-bold py-3 rounded-xl active:scale-[0.98] transition-transform opacity-80 hover:opacity-100">
-                                ${t('declineOrder')}
-                            </button>
-                            <button onclick="App.banCurrentUser()" class="bg-white border-2 border-softRed text-softRedText font-bold py-3 rounded-xl active:scale-[0.98] transition-transform hover:bg-softRed/10">
-                                ${t('banUser')}
-                            </button>
+                            <button onclick="api.declineOrder('${order.id}'); App.goBack();" class="bg-white border-2 border-primaryPink/20 font-bold py-3 rounded-xl active:scale-[0.98]">${t('declineOrder')}</button>
+                            <button onclick="if(confirm('Ban?')){api.banUser('${order.id}'); App.goBack();}" class="bg-white border-2 border-softRed text-softRedText font-bold py-3 rounded-xl active:scale-[0.98]">${t('banUser')}</button>
                         </div>
                     </div>
                 `;
-            } else if (!isArtist && isPending) {
-                actionArea = `
-                    <div class="mt-8 text-center p-6 bg-bgCream rounded-2xl border border-primaryPink/20">
-                        <div class="inline-flex items-center justify-center w-12 h-12 bg-primaryPink/30 rounded-full mb-3"><i data-lucide="clock" class="w-6 h-6 text-textDark"></i></div>
-                        <h3 class="font-bold text-lg mb-1">Ожидаем художника</h3>
-                        <p class="text-sm opacity-70">Заявка рассматривается, скоро появится цена.</p>
-                    </div>
-                `;
+            } else if (currentRole === 'customer' && order.status === 'pending') {
+                actionArea = `<div class="mt-8 text-center p-6 bg-bgCream rounded-2xl border border-primaryPink/20"><div class="inline-flex items-center justify-center w-12 h-12 bg-primaryPink/30 rounded-full mb-3"><i data-lucide="clock" class="w-6 h-6"></i></div><h3 class="font-bold text-lg mb-1">Ожидаем художника</h3></div>`;
+            }
+
+            let refsHtml = '';
+            if (order.references && order.references.length > 0) {
+                refsHtml = `<div class="mt-4"><h3 class="text-xs font-bold uppercase opacity-50 mb-2">References</h3><div class="flex gap-2 overflow-x-auto pb-2">${order.references.map(img => `<img src="${img}" class="w-20 h-20 object-cover rounded-lg border border-primaryPink/30">`).join('')}</div></div>`;
             }
 
             return `
-                <div class="p-4 animate-[slideInRight_0.3s_ease-out]">
+                <div class="p-4">
                     <div class="bg-white p-6 rounded-3xl shadow-sm border border-primaryPink/10 relative">
-                        <div class="absolute top-6 right-6 bg-bgCream px-3 py-1 rounded-lg border border-primaryPink/20 text-xs font-bold uppercase tracking-wide">
-                            ${t(order.status)}
-                        </div>
+                        <div class="absolute top-6 right-6 bg-bgCream px-3 py-1 rounded-lg border border-primaryPink/20 text-xs font-bold uppercase">${t(order.status)}</div>
                         <div class="mb-6 pr-20">
                             <h2 class="text-2xl font-bold mb-2">${t('types', order.type)}</h2>
-                            <div class="flex items-center gap-2 mb-1">
-                                ${order.customerPhoto ? `<img src="${order.customerPhoto}" class="w-6 h-6 rounded-full object-cover border border-primaryPink/20">` : `<div class="w-6 h-6 bg-bgCream rounded-full flex items-center justify-center border border-primaryPink/30"><i data-lucide="user" class="w-3 h-3 text-primaryPink"></i></div>`}
-                                <p class="text-sm font-medium opacity-80">${order.customerName}</p>
-                            </div>
-                            <p class="text-xs opacity-40 mt-1">${formatDate(order.date)}</p>
+                            <div class="flex items-center gap-2 mb-1">${order.customerPhoto ? `<img src="${order.customerPhoto}" class="w-6 h-6 rounded-full object-cover">` : `<div class="w-6 h-6 bg-bgCream rounded-full flex items-center justify-center"><i data-lucide="user" class="w-3 h-3 text-primaryPink"></i></div>`}<p class="text-sm font-medium opacity-80">${order.customerName}</p></div>
                         </div>
-                        <div class="bg-bgCream/50 p-4 rounded-xl border border-primaryPink/10 mb-6">
-                            <h3 class="text-xs font-bold uppercase opacity-50 mb-2">${t('description')}</h3>
-                            <p class="text-sm leading-relaxed whitespace-pre-wrap">${order.description}</p>
-                        </div>
+                        <div class="bg-bgCream/50 p-4 rounded-xl border border-primaryPink/10"><h3 class="text-xs font-bold uppercase opacity-50 mb-2">${t('description')}</h3><p class="text-sm leading-relaxed whitespace-pre-wrap">${order.description}</p></div>
+                        ${refsHtml}
                         ${actionArea}
                     </div>
                 </div>
@@ -511,228 +362,160 @@
             const order = state.mockOrders.find(o => o.id === state.activeOrderId);
             if (!order) return '';
 
-            const messagesHTML = order.messages.map(m => {
-                if (m.sender === 'system') {
-                    return `
-                        <div class="flex justify-center my-4">
-                            <span class="bg-primaryPink/20 border border-primaryPink/30 text-textDark/80 text-xs font-bold px-4 py-1.5 rounded-full backdrop-blur-sm text-center">
-                                ${m.text}
-                            </span>
-                        </div>
-                    `;
-                }
-
+            const msgs = order.messages.map(m => {
+                if (m.sender === 'system') return `<div class="flex justify-center my-4"><span class="bg-primaryPink/20 border border-primaryPink/30 text-xs font-bold px-4 py-1.5 rounded-full text-center">${m.text}</span></div>`;
                 const isMe = m.sender === currentRole;
+                const photoHtml = m.photo ? `<img src="${m.photo}" class="w-full rounded-lg mb-2 border border-black/10">` : '';
                 return `
                     <div class="flex w-full mb-4 ${isMe ? 'justify-end' : 'justify-start'}">
-                        <div class="max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${isMe ? 'bg-primaryPink text-textDark rounded-tr-sm' : 'bg-white border border-primaryPink/10 text-textDark rounded-tl-sm'}">
-                            <p class="text-sm leading-relaxed whitespace-pre-wrap">${m.text}</p>
-                            ${m.date ? `<p class="text-[10px] opacity-50 mt-1 text-right">${formatDate(m.date).split(',')[1]}</p>` : ''}
+                        <div class="max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${isMe ? 'bg-primaryPink text-textDark rounded-tr-sm' : 'bg-white border border-primaryPink/10 rounded-tl-sm'}">
+                            ${photoHtml}
+                            <p class="text-sm leading-relaxed whitespace-pre-wrap break-words">${m.text}</p>
+                            ${m.date ? `<p class="text-[10px] opacity-50 mt-1 text-right">${new Date(m.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
-
-            return messagesHTML.length ? messagesHTML : renderEmptyState('Чат', 'Здесь можно обсудить детали заказа.', 'message-circle');
+            return msgs.length ? msgs : renderEmptyState('Чат', 'Здесь можно обсудить детали.', 'message-circle');
         }
 
         function renderChat() {
             const order = state.mockOrders.find(o => o.id === state.activeOrderId);
             if (!order) return '';
 
-            const isArtist = currentRole === 'artist';
             let chatControls = '';
-
-            // --- КОНТРОЛЛЕР СТАТУСОВ В ЧАТЕ ---
             if (order.status === 'accepted') {
-                if (isArtist) {
+                if (currentRole === 'artist') {
                     if (state.showSubmitModal) {
                         chatControls = `
-                            <div class="bg-white border-t border-primaryPink/30 p-4 pb-safe-offset-4 shadow-[0_-10px_20px_rgba(244,199,204,0.1)]">
-                                <p class="font-bold text-softRedText mb-3 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0"></i> ${t('watermarkWarning')}</p>
+                            <div class="bg-white border-t border-primaryPink/30 p-4 shrink-0">
+                                <p class="font-bold text-softRedText mb-3 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> ${t('watermarkWarning')}</p>
                                 <label class="block text-xs font-bold mb-1 opacity-70">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label>
                                 <input type="number" id="finalPriceInput" class="custom-input mb-4 font-bold text-lg" value="${order.price || ''}">
                                 <div class="flex gap-3">
-                                    <button onclick="state.showSubmitModal=false; App.render()" class="flex-1 bg-bgCream border border-primaryPink/30 font-bold py-3 rounded-xl active:scale-95 transition-transform text-sm">Назад</button>
-                                    <button onclick="App.submitFinalArt()" class="flex-1 bg-primaryPink text-textDark font-bold py-3 rounded-xl active:scale-95 transition-transform text-sm"><i data-lucide="check" class="w-4 h-4 inline mr-1"></i> Сдать работу</button>
+                                    <button onclick="state.showSubmitModal=false; App.render()" class="flex-1 bg-bgCream border border-primaryPink/30 font-bold py-3 rounded-xl active:scale-95 text-sm">Назад</button>
+                                    <button onclick="App.submitFinalArt()" class="flex-1 bg-primaryPink text-textDark font-bold py-3 rounded-xl active:scale-95 text-sm"><i data-lucide="check" class="w-4 h-4 inline mr-1"></i> Сдать работу</button>
                                 </div>
                             </div>
                         `;
                     } else {
                         chatControls = `
-                            <div class="bg-white border-t border-primaryPink/30 p-3 pb-safe-offset-4 shadow-[0_-10px_20px_rgba(244,199,204,0.1)]">
-                                <button onclick="state.showSubmitModal=true; App.render()" class="w-full bg-bgCream text-textDark font-bold py-2 rounded-xl text-sm mb-3 border border-primaryPink/30 flex justify-center items-center gap-2 hover:bg-primaryPink/10 transition-colors"><i data-lucide="upload-cloud" class="w-4 h-4"></i> ${t('submitArt')}</button>
+                            <div class="bg-white border-t border-primaryPink/30 p-3 shrink-0">
+                                <button onclick="state.showSubmitModal=true; App.render()" class="w-full bg-bgCream font-bold py-2 rounded-xl text-sm mb-3 border border-primaryPink/30 flex justify-center items-center gap-2"><i data-lucide="upload-cloud" class="w-4 h-4"></i> ${t('submitArt')}</button>
                                 <div class="flex gap-2 items-end">
-                                    <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px';"></textarea>
-                                    <button onclick="App.sendChatMessage()" class="bg-primaryPink w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm active:scale-95 transition-transform"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
+                                    <label class="cursor-pointer p-3 bg-bgCream rounded-xl border border-primaryPink/30 flex-shrink-0 hover:bg-primaryPink/10">
+                                        <i data-lucide="image" class="w-5 h-5"></i>
+                                        <input type="file" id="chatPhotoInput" class="hidden" accept="image/*">
+                                    </label>
+                                    <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 120) + 'px';"></textarea>
+                                    <button onclick="App.sendChatMessage()" class="bg-primaryPink w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-95"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
                                 </div>
                             </div>
                         `;
                     }
                 } else {
-                    // Клиент в обычном чате
                     chatControls = `
-                        <div class="bg-white border-t border-primaryPink/30 p-3 pb-safe-offset-4 flex gap-2 items-end shadow-[0_-10px_20px_rgba(244,199,204,0.1)]">
-                            <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px';"></textarea>
-                            <button onclick="App.sendChatMessage()" class="bg-primaryPink w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm active:scale-95 transition-transform"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
+                        <div class="bg-white border-t border-primaryPink/30 p-3 shrink-0 flex gap-2 items-end">
+                            <label class="cursor-pointer p-3 bg-bgCream rounded-xl border border-primaryPink/30 flex-shrink-0 hover:bg-primaryPink/10">
+                                <i data-lucide="image" class="w-5 h-5"></i>
+                                <input type="file" id="chatPhotoInput" class="hidden" accept="image/*">
+                            </label>
+                            <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 120) + 'px';"></textarea>
+                            <button onclick="App.sendChatMessage()" class="bg-primaryPink w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-95"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
                         </div>
                     `;
                 }
             } else if (order.status === 'in_review') {
-                if (isArtist) {
-                    chatControls = `
-                        <div class="bg-bgCream text-center p-5 border-t border-primaryPink/30 pb-safe-offset-4">
-                            <p class="font-bold opacity-70 flex items-center justify-center gap-2"><i data-lucide="clock" class="w-5 h-5"></i> ${t('waitingReview')}</p>
-                        </div>
-                    `;
-                } else {
-                    chatControls = `
-                        <div class="bg-white border-t border-primaryPink/30 p-4 pb-safe-offset-4 shadow-[0_-10px_20px_rgba(244,199,204,0.1)] flex flex-col gap-3">
-                            <button onclick="App.completeOrder()" class="w-full bg-primaryPink text-textDark font-bold py-4 rounded-xl shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"><i data-lucide="badge-check" class="w-6 h-6"></i> ${t('approvePay')}</button>
-                            <button onclick="App.requestRevision()" class="w-full bg-bgCream border border-primaryPink/30 font-bold py-3 rounded-xl shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform text-textDark opacity-80"><i data-lucide="edit-3" class="w-5 h-5"></i> ${t('requestRevision')}</button>
-                        </div>
-                    `;
-                }
+                if (currentRole === 'artist') chatControls = `<div class="bg-bgCream text-center p-5 border-t border-primaryPink/30 shrink-0"><p class="font-bold opacity-70 flex justify-center gap-2"><i data-lucide="clock" class="w-5 h-5"></i> ${t('waitingReview')}</p></div>`;
+                else chatControls = `<div class="bg-white border-t border-primaryPink/30 p-4 shrink-0 flex flex-col gap-3"><button onclick="App.completeOrder()" class="w-full bg-primaryPink font-bold py-4 rounded-xl flex justify-center gap-2 active:scale-95"><i data-lucide="badge-check" class="w-6 h-6"></i> ${t('approvePay')}</button><button onclick="App.requestRevision()" class="w-full bg-bgCream border border-primaryPink/30 font-bold py-3 rounded-xl flex justify-center gap-2 active:scale-95 opacity-80"><i data-lucide="edit-3" class="w-5 h-5"></i> ${t('requestRevision')}</button></div>`;
             } else if (['completed', 'cancelled'].includes(order.status)) {
-                chatControls = `
-                    <div class="bg-bgCream text-center p-5 border-t border-primaryPink/30 pb-safe-offset-4">
-                        <p class="font-bold opacity-70 uppercase tracking-widest text-sm">${t(order.status)}</p>
-                    </div>
-                `;
+                chatControls = `<div class="bg-bgCream text-center p-5 border-t border-primaryPink/30 shrink-0"><p class="font-bold opacity-70 uppercase text-sm">${t(order.status)}</p></div>`;
             }
 
             return `
-                <div class="flex flex-col h-[calc(100vh-64px)] animate-[fadeIn_0.2s_ease-out]">
-                    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col">
-                        ${renderChatMessagesOnly()}
-                    </div>
+                <div class="flex flex-col h-full overflow-hidden w-full">
+                    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col">${renderChatMessagesOnly()}</div>
                     ${chatControls}
                 </div>
             `;
         }
 
         const App = {
-            init: () => {
-                const style = document.createElement('style');
-                style.textContent = `
-                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                    @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-                    .pb-safe-offset-4 { padding-bottom: calc(env(safe-area-inset-bottom) + 1rem); }
-                `;
-                document.head.appendChild(style);
-
-                App.render();
-                api.sync();
-                setInterval(api.sync, 2000); 
-            },
-
+            init: () => { App.render(); api.sync(); setInterval(api.sync, 2000); },
             render: () => {
-                renderHeader();
-                renderBottomNav();
-                
+                renderHeader(); renderBottomNav();
                 const content = document.getElementById('app-content');
-                
                 if (state.view === 'main') {
-                    if (currentRole === 'artist') {
-                        content.innerHTML = renderArtistList();
-                    } else {
-                        if (state.tab === 'order_art') content.innerHTML = renderCustomerForm();
-                        else if (state.tab === 'profile') content.innerHTML = renderCustomerProfile();
-                    }
-                } else if (state.view === 'order_detail') {
-                    content.innerHTML = renderOrderDetail();
-                } else if (state.view === 'chat') {
+                    if (currentRole === 'artist') content.innerHTML = renderArtistList();
+                    else { content.innerHTML = state.tab === 'order_art' ? renderCustomerForm() : renderCustomerProfile(); }
+                } else if (state.view === 'order_detail') content.innerHTML = renderOrderDetail();
+                else if (state.view === 'chat') {
                     content.innerHTML = renderChat();
-                    setTimeout(() => {
-                        const chatDiv = document.getElementById('chat-messages');
-                        if(chatDiv) chatDiv.scrollTop = chatDiv.scrollHeight;
-                    }, 50);
+                    setTimeout(() => { const c = document.getElementById('chat-messages'); if(c) c.scrollTop = c.scrollHeight; }, 50);
                 }
                 lucide.createIcons();
             },
-
             switchTab: (tabId) => { state.tab = tabId; state.view = 'main'; state.activeOrderId = null; App.render(); },
-            setLang: (langCode) => { state.lang = langCode; App.render(); },
-            toggleTheme: () => {
-                state.isDark = !state.isDark;
-                if (state.isDark) document.body.classList.add('dark');
-                else document.body.classList.remove('dark');
-                App.render();
-            },
-
+            setLang: (l) => { state.lang = l; App.render(); },
+            toggleTheme: () => { state.isDark = !state.isDark; if(state.isDark) document.body.classList.add('dark'); else document.body.classList.remove('dark'); App.render(); },
             openOrder: (id) => {
-                state.activeOrderId = id;
-                const order = state.mockOrders.find(o => o.id === id);
-                if (currentRole === 'artist' && order.status === 'pending' && !order.isRead) api.markAsRead(id);
-                
-                state.showSubmitModal = false; // reset modal
-                if (['accepted', 'in_review', 'completed', 'cancelled'].includes(order.status)) state.view = 'chat';
-                else state.view = 'order_detail';
-                
+                state.activeOrderId = id; const o = state.mockOrders.find(x => x.id === id);
+                if (currentRole === 'artist' && o.status === 'pending' && !o.isRead) api.markAsRead(id);
+                state.showSubmitModal = false;
+                state.view = ['accepted', 'in_review', 'completed', 'cancelled'].includes(o.status) ? 'chat' : 'order_detail';
                 App.render();
             },
-
             goBack: () => { state.view = 'main'; state.activeOrderId = null; state.showSubmitModal = false; App.render(); },
+            
+            handleFormFileUpload: async (e) => {
+                const files = Array.from(e.target.files).slice(0, 3); // Максимум 3 фото
+                const base64s = await Promise.all(files.map(f => fileToBase64(f)));
+                state.draftFilesData = base64s;
+                document.getElementById('uploadLabel').innerText = `${base64s.length} ${t('filesAttached')}`;
+            },
 
             submitOrder: (e) => {
                 e.preventDefault();
-                api.createOrder(document.getElementById('formType').value, document.getElementById('formDesc').value);
-                if (tg && tg.showAlert) tg.showAlert(t('orderSent')); else alert(t('orderSent'));
-                document.getElementById('orderForm').reset();
-                App.switchTab('profile'); 
+                api.createOrder(document.getElementById('formType').value, document.getElementById('formDesc').value, state.draftFilesData);
+                if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else alert(t('orderSent'));
+                state.draftFilesData = []; document.getElementById('orderForm').reset(); App.switchTab('profile'); 
             },
 
             acceptCurrentOrder: () => {
-                const price = parseFloat(document.getElementById('priceInput').value);
-                if (isNaN(price) || price <= 0) { alert('Пожалуйста, укажите цену.'); return; }
-                api.acceptOrder(state.activeOrderId, price, document.getElementById('currencyInput').value);
-                state.view = 'chat'; 
-                App.render();
+                const p = parseFloat(document.getElementById('priceInput').value);
+                if(isNaN(p) || p<=0) return alert('Укажите цену.');
+                api.acceptOrder(state.activeOrderId, p, document.getElementById('currencyInput').value);
+                state.view = 'chat'; App.render();
             },
-            declineCurrentOrder: () => { if (confirm('Точно отклонить заказ?')) { api.declineOrder(state.activeOrderId); App.goBack(); } },
-            banCurrentUser: () => { if (confirm('Точно заблокировать этого человека?')) { api.banUser(state.activeOrderId); App.goBack(); } },
-            unbanUser: (orderId) => { if (confirm('Разблокировать этого человека?')) { api.unbanUser(orderId); App.render(); } },
-            
-            // Новые функции
-            cancelCurrentOrder: () => {
-                if (confirm(t('confirmCancel'))) {
-                    api.cancelOrder(state.activeOrderId);
-                    App.goBack();
-                }
-            },
+            cancelCurrentOrder: () => { if(confirm(t('confirmCancel'))) { api.cancelOrder(state.activeOrderId); App.goBack(); } },
             submitFinalArt: () => {
-                const finalPrice = parseFloat(document.getElementById('finalPriceInput').value);
-                if (isNaN(finalPrice) || finalPrice <= 0) { alert('Укажите корректную финальную цену.'); return; }
-                api.submitFinalArt(state.activeOrderId, finalPrice);
-                state.showSubmitModal = false;
-                App.render();
+                const p = parseFloat(document.getElementById('finalPriceInput').value);
+                if(isNaN(p) || p<=0) return alert('Укажите итоговую цену.');
+                api.submitFinalArt(state.activeOrderId, p); state.showSubmitModal = false; App.render();
             },
-            requestRevision: () => {
-                api.requestRevision(state.activeOrderId);
-                App.render();
-            },
-            completeOrder: () => {
-                if (confirm('Одобрить заказ? Вы не сможете вернуть его на доработку.')) {
-                    api.completeOrder(state.activeOrderId);
-                    App.render();
-                }
-            },
+            requestRevision: () => { api.requestRevision(state.activeOrderId); App.render(); },
+            completeOrder: () => { if(confirm('Одобрить заказ?')) { api.completeOrder(state.activeOrderId); App.render(); } },
+            unbanUser: (id) => { if(confirm('Разблокировать?')) { api.unbanUser(id); App.render(); } },
 
-            sendChatMessage: () => {
+            sendChatMessage: async () => {
                 const input = document.getElementById('chatInput');
+                const photoInput = document.getElementById('chatPhotoInput');
                 const text = input.value.trim();
-                if (text) {
-                    api.sendMessage(state.activeOrderId, text);
-                    input.value = '';
-                    input.style.height = ''; 
+                let photoStr = null;
+
+                if (photoInput && photoInput.files.length > 0) {
+                    photoStr = await fileToBase64(photoInput.files[0]);
+                }
+
+                if (text || photoStr) {
+                    api.sendMessage(state.activeOrderId, text, photoStr);
+                    input.value = ''; input.style.height = ''; 
+                    if(photoInput) photoInput.value = '';
                     
-                    const order = state.mockOrders.find(o => o.id === state.activeOrderId);
-                    order.messages.push({ sender: currentRole, text: text, date: new Date().toISOString() });
+                    const o = state.mockOrders.find(x => x.id === state.activeOrderId);
+                    o.messages.push({ sender: currentRole, text: text, photo: photoStr, date: new Date().toISOString() });
                     const chatDiv = document.getElementById('chat-messages');
-                    if (chatDiv) {
-                        chatDiv.innerHTML = renderChatMessagesOnly();
-                        chatDiv.scrollTop = chatDiv.scrollHeight;
-                    }
+                    if (chatDiv) { chatDiv.innerHTML = renderChatMessagesOnly(); chatDiv.scrollTop = chatDiv.scrollHeight; }
                 }
             }
         };
