@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Artist Commission Platform</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <script>
@@ -16,50 +13,23 @@
             theme: {
                 extend: {
                     colors: {
-                        bgCream: '#FDFBF7',
-                        primaryPink: '#F4C7CC',
-                        textDark: '#4A4345',
-                        softRed: '#ffc1c1',
-                        softRedText: '#d9534f',
+                        bgCream: '#FDFBF7', primaryPink: '#F4C7CC', textDark: '#4A4345', softRed: '#ffc1c1', softRedText: '#d9534f',
                     },
-                    fontFamily: {
-                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-                    }
+                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'], }
                 }
             }
         }
     </script>
     <style>
-        body {
-            background-color: #FDFBF7;
-            color: #4A4345;
-            -webkit-tap-highlight-color: transparent;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
+        body { background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
-        .glowing-dot {
-            box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC;
-            animation: pulse-glow 2s infinite;
-        }
-        @keyframes pulse-glow {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.1); }
-        }
-        .custom-input {
-            width: 100%;
-            background-color: white;
-            border: 2px solid #FDFBF7;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1rem;
-            color: #4A4345;
-            transition: border-color 0.2s ease;
-            outline: none;
-        }
+        .glowing-dot { box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC; animation: pulse-glow 2s infinite; }
+        @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
+        .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; transition: border-color 0.2s ease; outline: none; }
         .custom-input:focus { border-color: #F4C7CC; }
         
-        /* Dark Mode Styles */
         .dark { background-color: #1E1A1B; color: #E8E4E5; }
         .dark .bg-white { background-color: #2A2426 !important; }
         .dark .bg-bgCream { background-color: #1E1A1B !important; }
@@ -85,10 +55,8 @@
     <nav id="app-bottom-nav" class="fixed bottom-0 w-full max-w-lg left-1/2 -translate-x-1/2 bg-white border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-safe"></nav>
 
     <script>
-        // ================= НАСТРОЙКИ СВЯЗИ =================
         const ARTIST_TELEGRAM_ID = 5800436089; 
         const API_URL = "http://127.0.0.1:8000";
-        // ===================================================
 
         const tg = window.Telegram?.WebApp;
         if (tg) {
@@ -112,6 +80,7 @@
             activeOrderId: null,
             mockOrders: [], 
             draftFiles: 0,
+            showSubmitModal: false,
             _lastDataStr: ""
         };
 
@@ -127,9 +96,12 @@
                 filesAttached: 'files attached', stats: 'Your Stats', totalOrdered: 'Total Ordered', language: 'Language', orderHistory: 'Order History',
                 setPrice: 'Set Price', acceptOrder: 'Accept Order', declineOrder: 'Decline', banUser: 'Ban User',
                 unread: 'New', pending: 'Pending', accepted: 'Accepted', chatPlaceholder: 'Type a message...', send: 'Send',
-                priceSetAt: 'Price:', back: 'Back', status: 'Status', success: 'Success!', orderSent: 'Your request has been sent to the artist.',
+                priceSetAt: 'Price:', back: 'Back', status: 'Status', success: 'Success!', orderSent: 'Your request has been sent.',
                 darkMode: 'Dark Mode', tabBanned: 'Banned', unban: 'Unban', byn: 'BYN', stars: 'Stars', emptyBannedTitle: 'No Banned Users',
-                emptyBannedDesc: 'You have not banned anyone.', currency: 'Currency', banned: 'Banned'
+                emptyBannedDesc: 'You have not banned anyone.', currency: 'Currency', banned: 'Banned',
+                cancelOrder: 'Cancel Order', submitArt: 'Submit Artwork', watermarkWarning: 'WARNING: Did you add a watermark?',
+                finalPrice: 'Final Price', requestRevision: 'Request Revision', approvePay: 'Approve & Pay', cancelled: 'Cancelled',
+                in_review: 'In Review', completed: 'Completed', waitingReview: 'Waiting for Customer Review', confirmCancel: 'Are you sure you want to cancel this order?'
             },
             ru: {
                 appTitle: 'Арт Студия', tabOrder: 'Заказать', tabProfile: 'Профиль', tabNew: 'Новые заявки', tabActive: 'В работе',
@@ -141,10 +113,13 @@
                 description: 'Описание (Персонажи, позы, детали...)', uploadBtn: 'Загрузить референсы', submitBtn: 'Отправить заявку',
                 filesAttached: 'файлов прикреплено', stats: 'Ваша статистика', totalOrdered: 'Всего заказов', language: 'Язык', orderHistory: 'История заказов',
                 setPrice: 'Указать цену', acceptOrder: 'Принять заказ', declineOrder: 'Отклонить', banUser: 'Забанить',
-                unread: 'Новое', pending: 'Ожидает', accepted: 'Принят', chatPlaceholder: 'Введите сообщение...', send: 'Отправить',
-                priceSetAt: 'Цена:', back: 'Назад', status: 'Статус', success: 'Успешно!', orderSent: 'Ваша заявка отправлена художнику.',
+                unread: 'Новое', pending: 'Ожидает', accepted: 'В работе', chatPlaceholder: 'Введите сообщение...', send: 'Отправить',
+                priceSetAt: 'Цена:', back: 'Назад', status: 'Статус', success: 'Успешно!', orderSent: 'Ваша заявка отправлена.',
                 darkMode: 'Темная тема', tabBanned: 'В бане', unban: 'Разблокировать', byn: 'BYN', stars: 'Звезды', emptyBannedTitle: 'Нет заблокированных',
-                emptyBannedDesc: 'Список заблокированных пуст.', currency: 'Валюта', banned: 'Заблокирован'
+                emptyBannedDesc: 'Список заблокированных пуст.', currency: 'Валюта', banned: 'Заблокирован',
+                cancelOrder: 'Отменить заказ', submitArt: 'Сдать работу', watermarkWarning: 'ВНИМАНИЕ: Вы поставили водяной знак?',
+                finalPrice: 'Итоговая цена', requestRevision: 'Доработать (Правки)', approvePay: 'Одобрить и Оплатить', cancelled: 'Отменен',
+                in_review: 'На проверке', completed: 'Завершен', waitingReview: 'Ожидает проверки клиентом', confirmCancel: 'Вы уверены, что хотите отменить этот заказ?'
             }
         };
 
@@ -154,7 +129,6 @@
             return strings[key] || key;
         };
 
-        // --- ВОССТАНОВЛЕННЫЙ API (Работа с сервером Python) ---
         const api = {
             sync: async () => {
                 try {
@@ -165,7 +139,7 @@
                         if (state._lastDataStr !== newDataStr) {
                             state.mockOrders = data.orders;
                             state._lastDataStr = newDataStr;
-                            if (state.view === 'chat') {
+                            if (state.view === 'chat' && !state.showSubmitModal) {
                                 const chatDiv = document.getElementById('chat-messages');
                                 if (chatDiv) {
                                     chatDiv.innerHTML = renderChatMessagesOnly();
@@ -179,43 +153,26 @@
                 } catch (e) { console.log("Waiting for server..."); }
             },
             createOrder: async (type, desc) => {
-                await fetch(`${API_URL}/api/order`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type: type, description: desc })
-                });
+                await fetch(`${API_URL}/api/order`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type: type, description: desc }) });
                 await api.sync();
             },
             acceptOrder: async (orderId, price, currency) => {
-                await fetch(`${API_URL}/api/order/${orderId}/accept`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ price: price, currency: currency })
-                });
+                await fetch(`${API_URL}/api/order/${orderId}/accept`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ price, currency }) });
                 await api.sync();
             },
-            declineOrder: async (orderId) => {
-                await fetch(`${API_URL}/api/order/${orderId}/decline`, { method: 'POST' });
+            declineOrder: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/decline`, { method: 'POST' }); await api.sync(); },
+            cancelOrder: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/cancel`, { method: 'POST' }); await api.sync(); },
+            submitFinalArt: async (orderId, finalPrice) => {
+                await fetch(`${API_URL}/api/order/${orderId}/submit`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ finalPrice }) });
                 await api.sync();
             },
-            banUser: async (orderId) => {
-                await fetch(`${API_URL}/api/order/${orderId}/ban`, { method: 'POST' });
-                await api.sync();
-            },
-            unbanUser: async (orderId) => {
-                await fetch(`${API_URL}/api/order/${orderId}/unban`, { method: 'POST' });
-                await api.sync();
-            },
-            markAsRead: async (orderId) => {
-                await fetch(`${API_URL}/api/order/${orderId}/read`, { method: 'POST' });
-                await api.sync();
-            },
+            requestRevision: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/revision`, { method: 'POST' }); await api.sync(); },
+            completeOrder: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/complete`, { method: 'POST' }); await api.sync(); },
+            banUser: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/ban`, { method: 'POST' }); await api.sync(); },
+            unbanUser: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/unban`, { method: 'POST' }); await api.sync(); },
+            markAsRead: async (orderId) => { await fetch(`${API_URL}/api/order/${orderId}/read`, { method: 'POST' }); await api.sync(); },
             sendMessage: async (orderId, text) => {
-                await fetch(`${API_URL}/api/order/${orderId}/message`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ text: text, sender: currentRole })
-                });
+                await fetch(`${API_URL}/api/order/${orderId}/message`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text, sender: currentRole }) });
                 await api.sync();
             }
         };
@@ -236,16 +193,26 @@
             if (state.view !== 'main') {
                 const activeOrder = state.mockOrders.find(o => o.id === state.activeOrderId);
                 let extraInfo = '';
-                if (state.view === 'chat' && activeOrder && activeOrder.price) {
-                    extraInfo = `<div class="bg-primaryPink/20 text-primaryPink font-bold px-3 py-1 rounded-full text-sm shadow-sm">${t('priceSetAt')} ${formatPrice(activeOrder.price, activeOrder.currency)}</div>`;
+                let cancelBtn = '';
+                
+                if (activeOrder) {
+                    if (state.view === 'chat' && activeOrder.price && ['accepted', 'in_review'].includes(activeOrder.status)) {
+                        extraInfo = `<div class="bg-primaryPink/20 text-primaryPink font-bold px-3 py-1 rounded-full text-sm shadow-sm">${formatPrice(activeOrder.price, activeOrder.currency)}</div>`;
+                    }
+                    if (['pending', 'accepted'].includes(activeOrder.status)) {
+                        cancelBtn = `<button onclick="App.cancelCurrentOrder()" class="p-2 text-softRedText hover:bg-softRed/10 rounded-full transition-colors" title="${t('cancelOrder')}"><i data-lucide="x-circle" class="w-6 h-6"></i></button>`;
+                    }
                 }
 
                 header.innerHTML = `
-                    <button onclick="App.goBack()" class="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 transition-colors">
-                        <i data-lucide="chevron-left" class="w-6 h-6 text-textDark"></i>
-                    </button>
-                    <h1 class="font-bold text-lg text-textDark truncate mx-4">${activeOrder ? t('types', activeOrder.type) : t('back')}</h1>
-                    ${extraInfo || '<div class="w-10"></div>'}
+                    <div class="flex items-center">
+                        <button onclick="App.goBack()" class="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 transition-colors">
+                            <i data-lucide="chevron-left" class="w-6 h-6 text-textDark"></i>
+                        </button>
+                        <h1 class="font-bold text-lg text-textDark truncate mx-2">${activeOrder ? t('types', activeOrder.type) : t('back')}</h1>
+                        ${extraInfo}
+                    </div>
+                    <div>${cancelBtn}</div>
                 `;
             } else {
                 let rightAction = '';
@@ -264,9 +231,7 @@
                         </div>
                         <h1 class="font-bold text-xl text-textDark tracking-tight">${t('appTitle')}</h1>
                     </div>
-                    <div class="flex items-center gap-2 text-sm font-medium opacity-80">
-                        ${rightAction}
-                    </div>
+                    <div class="flex items-center gap-2 text-sm font-medium opacity-80">${rightAction}</div>
                 `;
             }
         }
@@ -314,11 +279,7 @@
             return `
                 <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
                     <div class="bg-white p-6 rounded-3xl shadow-sm border border-primaryPink/10">
-                        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-                            <i data-lucide="sparkles" class="w-5 h-5 text-primaryPink"></i>
-                            ${t('formTitle')}
-                        </h2>
-                        
+                        <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="sparkles" class="w-5 h-5 text-primaryPink"></i> ${t('formTitle')}</h2>
                         <form id="orderForm" onsubmit="App.submitOrder(event)" class="space-y-5">
                             <div>
                                 <label class="block text-sm font-semibold mb-2 ml-1 text-textDark/80">${t('artType')}</label>
@@ -334,23 +295,12 @@
                                     <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none opacity-50"></i>
                                 </div>
                             </div>
-
                             <div>
                                 <label class="block text-sm font-semibold mb-2 ml-1 text-textDark/80">${t('description')}</label>
                                 <textarea id="formDesc" required rows="4" class="custom-input resize-none" placeholder="..."></textarea>
                             </div>
-
-                            <div>
-                                <label class="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-primaryPink/40 rounded-xl bg-primaryPink/5 cursor-pointer hover:bg-primaryPink/10 transition-colors">
-                                    <i data-lucide="image-plus" class="w-5 h-5 text-textDark"></i>
-                                    <span class="font-medium text-sm text-textDark" id="uploadLabel">${state.draftFiles > 0 ? `${state.draftFiles}${t('filesAttached')}` : t('uploadBtn')}</span>
-                                    <input type="file" class="hidden" multiple onchange="App.handleFileUpload(event)">
-                                </label>
-                            </div>
-
                             <button type="submit" class="w-full bg-primaryPink text-textDark font-bold py-4 rounded-xl shadow-[0_4px_14px_rgba(244,199,204,0.4)] hover:shadow-md active:scale-[0.98] transition-all flex justify-center items-center gap-2">
-                                <i data-lucide="send" class="w-5 h-5"></i>
-                                ${t('submitBtn')}
+                                <i data-lucide="send" class="w-5 h-5"></i> ${t('submitBtn')}
                             </button>
                         </form>
                     </div>
@@ -359,7 +309,7 @@
         }
 
         function renderCustomerProfile() {
-            const userOrders = state.mockOrders;
+            const userOrders = state.mockOrders.filter(o => o.customerId === tgUser);
             let historyHTML = '';
             
             if (userOrders.length === 0) {
@@ -382,7 +332,7 @@
             }
 
             const avatarHTML = tgPhoto 
-                ? `<img src="${tgPhoto}" alt="Avatar" class="w-14 h-14 rounded-full border-2 border-primaryPink object-cover shadow-sm">`
+                ? `<img src="${tgPhoto}" class="w-14 h-14 rounded-full border-2 border-primaryPink object-cover shadow-sm">`
                 : `<div class="w-14 h-14 bg-bgCream rounded-full border-2 border-primaryPink flex items-center justify-center"><i data-lucide="user" class="w-6 h-6 text-primaryPink"></i></div>`;
 
             return `
@@ -395,32 +345,16 @@
                                 <p class="text-sm opacity-60">ID: ${tgUser}</p>
                             </div>
                         </div>
-                        
                         <div class="flex flex-col gap-2 items-end">
                             <div class="flex bg-bgCream rounded-lg p-1 border border-primaryPink/20">
                                 <button onclick="App.setLang('en')" class="px-3 py-1 rounded-md text-sm font-bold transition-colors ${state.lang === 'en' ? 'bg-primaryPink text-textDark shadow-sm' : 'text-textDark/50'}">EN</button>
                                 <button onclick="App.setLang('ru')" class="px-3 py-1 rounded-md text-sm font-bold transition-colors ${state.lang === 'ru' ? 'bg-primaryPink text-textDark shadow-sm' : 'text-textDark/50'}">RU</button>
                             </div>
                             <button onclick="App.toggleTheme()" class="flex items-center gap-2 text-xs font-bold bg-bgCream px-3 py-1.5 rounded-lg border border-primaryPink/20 hover:border-primaryPink transition-colors">
-                                <i data-lucide="${state.isDark ? 'sun' : 'moon'}" class="w-3.5 h-3.5"></i>
-                                ${t('darkMode')}
+                                <i data-lucide="${state.isDark ? 'sun' : 'moon'}" class="w-3.5 h-3.5"></i> ${t('darkMode')}
                             </button>
                         </div>
                     </div>
-
-                    <div>
-                        <h3 class="font-bold text-sm ml-2 mb-3 opacity-60 uppercase tracking-wider">${t('stats')}</h3>
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-primaryPink/10 flex justify-between items-center">
-                            <div class="flex items-center gap-3">
-                                <div class="p-2 bg-primaryPink/20 rounded-xl">
-                                    <i data-lucide="shopping-bag" class="w-5 h-5 text-textDark"></i>
-                                </div>
-                                <span class="font-semibold">${t('totalOrdered')}</span>
-                            </div>
-                            <span class="text-2xl font-bold">${userOrders.length}</span>
-                        </div>
-                    </div>
-
                     <div>
                         <h3 class="font-bold text-sm ml-2 mb-3 opacity-60 uppercase tracking-wider">${t('orderHistory')}</h3>
                         ${historyHTML}
@@ -444,27 +378,29 @@
         function renderArtistList() {
             const isNewTab = state.tab === 'new_requests';
             const isBannedTab = state.tab === 'banned';
-            const statusFilter = isNewTab ? 'pending' : (isBannedTab ? 'banned' : 'accepted');
-            const orders = state.mockOrders.filter(o => o.status === statusFilter).slice().reverse();
+            
+            // Фильтр статусов. У художника во вкладке "В работе" теперь лежат и accepted, и in_review, и completed.
+            let statusFilter = [];
+            if (isNewTab) statusFilter = ['pending'];
+            else if (isBannedTab) statusFilter = ['banned'];
+            else statusFilter = ['accepted', 'in_review', 'completed', 'cancelled'];
+            
+            const orders = state.mockOrders.filter(o => statusFilter.includes(o.status)).slice().reverse();
 
             if (orders.length === 0) {
                 let emptyTitle = isNewTab ? t('emptyNewTitle') : t('emptyActiveTitle');
                 let emptyDesc = isNewTab ? t('emptyNewDesc') : t('emptyActiveDesc');
                 let emptyIcon = isNewTab ? 'coffee' : 'check-circle-2';
-
-                if (isBannedTab) {
-                    emptyTitle = t('emptyBannedTitle');
-                    emptyDesc = t('emptyBannedDesc');
-                    emptyIcon = 'shield-check';
-                }
+                if (isBannedTab) { emptyTitle = t('emptyBannedTitle'); emptyDesc = t('emptyBannedDesc'); emptyIcon = 'shield-check'; }
                 return renderEmptyState(emptyTitle, emptyDesc, emptyIcon);
             }
 
             return `
                 <div class="p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">
-                    ${orders.map(o => `
-                        <div ${!isBannedTab ? `onclick="App.openOrder('${o.id}')"` : ''} class="bg-white p-5 rounded-2xl shadow-sm border ${!o.isRead && isNewTab ? 'border-primaryPink shadow-[0_0_10px_rgba(244,199,204,0.3)]' : 'border-primaryPink/10'} ${!isBannedTab ? 'cursor-pointer hover:border-primaryPink' : ''} transition-all relative overflow-hidden group">
-                            
+                    ${orders.map(o => {
+                        const isDimmed = ['completed', 'cancelled'].includes(o.status);
+                        return `
+                        <div ${!isBannedTab ? `onclick="App.openOrder('${o.id}')"` : ''} class="bg-white p-5 rounded-2xl shadow-sm border ${!o.isRead && isNewTab ? 'border-primaryPink shadow-[0_0_10px_rgba(244,199,204,0.3)]' : 'border-primaryPink/10'} ${!isBannedTab ? 'cursor-pointer hover:border-primaryPink' : ''} transition-all relative overflow-hidden group ${isDimmed ? 'opacity-60' : ''}">
                             ${!o.isRead && isNewTab ? `<div class="absolute top-5 right-5 w-3 h-3 bg-primaryPink rounded-full glowing-dot"></div>` : ''}
                             
                             <div class="flex justify-between items-start mb-3 pr-6">
@@ -480,19 +416,20 @@
                             
                             <p class="text-sm opacity-80 line-clamp-2 leading-relaxed bg-bgCream/50 p-3 rounded-xl border border-primaryPink/5">${o.description}</p>
                             
-                            <div class="mt-4 flex items-center justify-between text-xs opacity-50 font-medium">
-                                <span>${formatDate(o.date)}</span>${isBannedTab ? `
+                            <div class="mt-4 flex items-center justify-between text-xs font-medium">
+                                <span class="bg-bgCream px-2 py-1 rounded-md border border-primaryPink/20">${t(o.status)}</span>${isBannedTab ? `
                                     <button onclick="App.unbanUser('${o.id}')" class="px-4 py-2 bg-textDark text-bgCream dark:bg-white dark:text-textDark rounded-lg font-bold shadow-md hover:scale-105 active:scale-95 transition-all">
                                         ${t('unban')}
                                     </button>
                                 ` : `
-                                    <span class="flex items-center gap-1 group-hover:text-primaryPink transition-colors">
-                                        ${isNewTab ? 'Проверить' : 'Открыть чат'} <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                    <span class="flex items-center gap-1 group-hover:text-primaryPink transition-colors opacity-50">
+                                        ${isNewTab ? 'Проверить' : 'Открыть'} <i data-lucide="arrow-right" class="w-3 h-3"></i>
                                     </span>
                                 `}
                             </div>
                         </div>
-                    `).join('')}
+                        `
+                    }).join('')}
                 </div>
             `;
         }
@@ -510,11 +447,9 @@
                     <div class="mt-8 space-y-4">
                         <div class="bg-white p-5 rounded-2xl border border-primaryPink shadow-sm">
                             <label class="block text-sm font-bold mb-3">${t('setPrice')}</label>
-                            
                             <div class="flex gap-2">
                                 <div class="relative flex items-center flex-1">
-                                    <span class="absolute left-4 font-bold text-lg opacity-50"></span>
-                                    <input type="number" id="priceInput" class="custom-input pl-4 font-bold text-lg w-full" placeholder="0.00" min="1">
+                                    <input type="number" id="priceInput" class="custom-input font-bold text-lg w-full" placeholder="0.00" min="1">
                                 </div>
                                 <div class="relative w-28">
                                     <select id="currencyInput" class="custom-input font-bold w-full appearance-none cursor-pointer text-center">
@@ -524,12 +459,10 @@
                                     <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none opacity-50"></i>
                                 </div>
                             </div>
-
                             <button onclick="App.acceptCurrentOrder()" class="w-full mt-4 bg-primaryPink text-textDark font-bold py-4 rounded-xl shadow-md active:scale-[0.98] transition-transform">
                                 ${t('acceptOrder')}
                             </button>
                         </div>
-                        
                         <div class="grid grid-cols-2 gap-3">
                             <button onclick="App.declineCurrentOrder()" class="bg-white border-2 border-primaryPink/20 font-bold py-3 rounded-xl active:scale-[0.98] transition-transform opacity-80 hover:opacity-100">
                                 ${t('declineOrder')}
@@ -543,17 +476,9 @@
             } else if (!isArtist && isPending) {
                 actionArea = `
                     <div class="mt-8 text-center p-6 bg-bgCream rounded-2xl border border-primaryPink/20">
-                        <div class="inline-flex items-center justify-center w-12 h-12 bg-primaryPink/30 rounded-full mb-3">
-                            <i data-lucide="clock" class="w-6 h-6 text-textDark"></i>
-                        </div>
+                        <div class="inline-flex items-center justify-center w-12 h-12 bg-primaryPink/30 rounded-full mb-3"><i data-lucide="clock" class="w-6 h-6 text-textDark"></i></div>
                         <h3 class="font-bold text-lg mb-1">Ожидаем художника</h3>
                         <p class="text-sm opacity-70">Заявка рассматривается, скоро появится цена.</p>
-                    </div>
-                `;
-            } else if (order.status === 'declined') {
-                actionArea = `
-                    <div class="mt-8 text-center p-6 bg-white border-2 border-softRed rounded-2xl">
-                        <h3 class="font-bold text-softRedText text-lg mb-1">Заявка отклонена</h3>
                     </div>
                 `;
             }
@@ -564,7 +489,6 @@
                         <div class="absolute top-6 right-6 bg-bgCream px-3 py-1 rounded-lg border border-primaryPink/20 text-xs font-bold uppercase tracking-wide">
                             ${t(order.status)}
                         </div>
-                        
                         <div class="mb-6 pr-20">
                             <h2 class="text-2xl font-bold mb-2">${t('types', order.type)}</h2>
                             <div class="flex items-center gap-2 mb-1">
@@ -573,7 +497,6 @@
                             </div>
                             <p class="text-xs opacity-40 mt-1">${formatDate(order.date)}</p>
                         </div>
-
                         <div class="bg-bgCream/50 p-4 rounded-xl border border-primaryPink/10 mb-6">
                             <h3 class="text-xs font-bold uppercase opacity-50 mb-2">${t('description')}</h3>
                             <p class="text-sm leading-relaxed whitespace-pre-wrap">${order.description}</p>
@@ -592,7 +515,7 @@
                 if (m.sender === 'system') {
                     return `
                         <div class="flex justify-center my-4">
-                            <span class="bg-primaryPink/20 border border-primaryPink/30 text-textDark/80 text-xs font-bold px-4 py-1.5 rounded-full backdrop-blur-sm">
+                            <span class="bg-primaryPink/20 border border-primaryPink/30 text-textDark/80 text-xs font-bold px-4 py-1.5 rounded-full backdrop-blur-sm text-center">
                                 ${m.text}
                             </span>
                         </div>
@@ -602,10 +525,8 @@
                 const isMe = m.sender === currentRole;
                 return `
                     <div class="flex w-full mb-4 ${isMe ? 'justify-end' : 'justify-start'}">
-                        <div class="max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${
-                            isMe ? 'bg-primaryPink text-textDark rounded-tr-sm' : 'bg-white border border-primaryPink/10 text-textDark rounded-tl-sm'
-                        }">
-                            <p class="text-sm leading-relaxed">${m.text}</p>
+                        <div class="max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${isMe ? 'bg-primaryPink text-textDark rounded-tr-sm' : 'bg-white border border-primaryPink/10 text-textDark rounded-tl-sm'}">
+                            <p class="text-sm leading-relaxed whitespace-pre-wrap">${m.text}</p>
                             ${m.date ? `<p class="text-[10px] opacity-50 mt-1 text-right">${formatDate(m.date).split(',')[1]}</p>` : ''}
                         </div>
                     </div>
@@ -616,18 +537,76 @@
         }
 
         function renderChat() {
+            const order = state.mockOrders.find(o => o.id === state.activeOrderId);
+            if (!order) return '';
+
+            const isArtist = currentRole === 'artist';
+            let chatControls = '';
+
+            // --- КОНТРОЛЛЕР СТАТУСОВ В ЧАТЕ ---
+            if (order.status === 'accepted') {
+                if (isArtist) {
+                    if (state.showSubmitModal) {
+                        chatControls = `
+                            <div class="bg-white border-t border-primaryPink/30 p-4 pb-safe-offset-4 shadow-[0_-10px_20px_rgba(244,199,204,0.1)]">
+                                <p class="font-bold text-softRedText mb-3 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0"></i> ${t('watermarkWarning')}</p>
+                                <label class="block text-xs font-bold mb-1 opacity-70">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label>
+                                <input type="number" id="finalPriceInput" class="custom-input mb-4 font-bold text-lg" value="${order.price || ''}">
+                                <div class="flex gap-3">
+                                    <button onclick="state.showSubmitModal=false; App.render()" class="flex-1 bg-bgCream border border-primaryPink/30 font-bold py-3 rounded-xl active:scale-95 transition-transform text-sm">Назад</button>
+                                    <button onclick="App.submitFinalArt()" class="flex-1 bg-primaryPink text-textDark font-bold py-3 rounded-xl active:scale-95 transition-transform text-sm"><i data-lucide="check" class="w-4 h-4 inline mr-1"></i> Сдать работу</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        chatControls = `
+                            <div class="bg-white border-t border-primaryPink/30 p-3 pb-safe-offset-4 shadow-[0_-10px_20px_rgba(244,199,204,0.1)]">
+                                <button onclick="state.showSubmitModal=true; App.render()" class="w-full bg-bgCream text-textDark font-bold py-2 rounded-xl text-sm mb-3 border border-primaryPink/30 flex justify-center items-center gap-2 hover:bg-primaryPink/10 transition-colors"><i data-lucide="upload-cloud" class="w-4 h-4"></i> ${t('submitArt')}</button>
+                                <div class="flex gap-2 items-end">
+                                    <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px';"></textarea>
+                                    <button onclick="App.sendChatMessage()" class="bg-primaryPink w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm active:scale-95 transition-transform"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Клиент в обычном чате
+                    chatControls = `
+                        <div class="bg-white border-t border-primaryPink/30 p-3 pb-safe-offset-4 flex gap-2 items-end shadow-[0_-10px_20px_rgba(244,199,204,0.1)]">
+                            <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px';"></textarea>
+                            <button onclick="App.sendChatMessage()" class="bg-primaryPink w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm active:scale-95 transition-transform"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
+                        </div>
+                    `;
+                }
+            } else if (order.status === 'in_review') {
+                if (isArtist) {
+                    chatControls = `
+                        <div class="bg-bgCream text-center p-5 border-t border-primaryPink/30 pb-safe-offset-4">
+                            <p class="font-bold opacity-70 flex items-center justify-center gap-2"><i data-lucide="clock" class="w-5 h-5"></i> ${t('waitingReview')}</p>
+                        </div>
+                    `;
+                } else {
+                    chatControls = `
+                        <div class="bg-white border-t border-primaryPink/30 p-4 pb-safe-offset-4 shadow-[0_-10px_20px_rgba(244,199,204,0.1)] flex flex-col gap-3">
+                            <button onclick="App.completeOrder()" class="w-full bg-primaryPink text-textDark font-bold py-4 rounded-xl shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"><i data-lucide="badge-check" class="w-6 h-6"></i> ${t('approvePay')}</button>
+                            <button onclick="App.requestRevision()" class="w-full bg-bgCream border border-primaryPink/30 font-bold py-3 rounded-xl shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform text-textDark opacity-80"><i data-lucide="edit-3" class="w-5 h-5"></i> ${t('requestRevision')}</button>
+                        </div>
+                    `;
+                }
+            } else if (['completed', 'cancelled'].includes(order.status)) {
+                chatControls = `
+                    <div class="bg-bgCream text-center p-5 border-t border-primaryPink/30 pb-safe-offset-4">
+                        <p class="font-bold opacity-70 uppercase tracking-widest text-sm">${t(order.status)}</p>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="flex flex-col h-[calc(100vh-64px)] animate-[fadeIn_0.2s_ease-out]">
                     <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col">
                         ${renderChatMessagesOnly()}
                     </div>
-                    
-                    <div class="bg-white border-t border-primaryPink/30 p-3 pb-safe-offset-4 flex gap-2 items-end shadow-[0_-10px_20px_rgba(244,199,204,0.1)]">
-                        <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; if(this.scrollHeight > 120) this.style.overflowY = 'auto'; else this.style.overflowY = 'hidden';"></textarea>
-                        <button onclick="App.sendChatMessage()" class="bg-primaryPink w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm active:scale-95 transition-transform">
-                            <i data-lucide="send" class="w-5 h-5 ml-1"></i>
-                        </button>
-                    </div>
+                    ${chatControls}
                 </div>
             `;
         }
@@ -672,90 +651,8 @@
                 lucide.createIcons();
             },
 
-            switchTab: (tabId) => {
-                state.tab = tabId;
-                state.view = 'main';
-                state.activeOrderId = null;
-                App.render();
-            },
-
-            setLang: (langCode) => {
-                state.lang = langCode;
-                App.render();
-            },
-
-            openOrder: (id) => {
-                state.activeOrderId = id;
-                const order = state.mockOrders.find(o => o.id === id);
-                
-                if (currentRole === 'artist' && order.status === 'pending' && !order.isRead) {
-                    api.markAsRead(id);
-                }
-
-                if (order.status === 'accepted') {
-                    state.view = 'chat';
-                } else {
-                    state.view = 'order_detail';
-                }
-                App.render();
-            },
-
-            goBack: () => {
-                state.view = 'main';
-                state.activeOrderId = null;
-                App.render();
-            },
-
-            submitOrder: (e) => {
-                e.preventDefault();
-                const type = document.getElementById('formType').value;
-                const desc = document.getElementById('formDesc').value;
-                
-                api.createOrder(type, desc);
-                
-                if (tg && tg.showAlert) tg.showAlert(t('orderSent'));
-                else alert(t('orderSent'));
-
-                document.getElementById('orderForm').reset();
-                App.switchTab('profile'); 
-            },
-
-            acceptCurrentOrder: () => {
-                const priceInput = document.getElementById('priceInput');
-                const currencyInput = document.getElementById('currencyInput');
-                const price = parseFloat(priceInput.value);
-                const currency = currencyInput.value;
-                
-                if (isNaN(price) || price <= 0) {
-                    alert('Пожалуйста, укажите цену.');
-                    return;
-                }
-
-                api.acceptOrder(state.activeOrderId, price, currency);
-                state.view = 'chat'; 
-                App.render();
-            },
-
-            declineCurrentOrder: () => {
-                if (confirm('Точно отклонить заказ?')) {
-                    api.declineOrder(state.activeOrderId);
-                    App.goBack();
-                }
-            },
-
-            banCurrentUser: () => {
-                if (confirm('Точно заблокировать этого человека?')) {
-                    api.banUser(state.activeOrderId);
-                    App.goBack();
-                }
-            },
-
-            unbanUser: (orderId) => {
-                if (confirm('Разблокировать этого человека?')) {
-                    api.unbanUser(orderId);
-                }
-            },
-
+            switchTab: (tabId) => { state.tab = tabId; state.view = 'main'; state.activeOrderId = null; App.render(); },
+            setLang: (langCode) => { state.lang = langCode; App.render(); },
             toggleTheme: () => {
                 state.isDark = !state.isDark;
                 if (state.isDark) document.body.classList.add('dark');
@@ -763,10 +660,67 @@
                 App.render();
             },
 
+            openOrder: (id) => {
+                state.activeOrderId = id;
+                const order = state.mockOrders.find(o => o.id === id);
+                if (currentRole === 'artist' && order.status === 'pending' && !order.isRead) api.markAsRead(id);
+                
+                state.showSubmitModal = false; // reset modal
+                if (['accepted', 'in_review', 'completed', 'cancelled'].includes(order.status)) state.view = 'chat';
+                else state.view = 'order_detail';
+                
+                App.render();
+            },
+
+            goBack: () => { state.view = 'main'; state.activeOrderId = null; state.showSubmitModal = false; App.render(); },
+
+            submitOrder: (e) => {
+                e.preventDefault();
+                api.createOrder(document.getElementById('formType').value, document.getElementById('formDesc').value);
+                if (tg && tg.showAlert) tg.showAlert(t('orderSent')); else alert(t('orderSent'));
+                document.getElementById('orderForm').reset();
+                App.switchTab('profile'); 
+            },
+
+            acceptCurrentOrder: () => {
+                const price = parseFloat(document.getElementById('priceInput').value);
+                if (isNaN(price) || price <= 0) { alert('Пожалуйста, укажите цену.'); return; }
+                api.acceptOrder(state.activeOrderId, price, document.getElementById('currencyInput').value);
+                state.view = 'chat'; 
+                App.render();
+            },
+            declineCurrentOrder: () => { if (confirm('Точно отклонить заказ?')) { api.declineOrder(state.activeOrderId); App.goBack(); } },
+            banCurrentUser: () => { if (confirm('Точно заблокировать этого человека?')) { api.banUser(state.activeOrderId); App.goBack(); } },
+            unbanUser: (orderId) => { if (confirm('Разблокировать этого человека?')) { api.unbanUser(orderId); App.render(); } },
+            
+            // Новые функции
+            cancelCurrentOrder: () => {
+                if (confirm(t('confirmCancel'))) {
+                    api.cancelOrder(state.activeOrderId);
+                    App.goBack();
+                }
+            },
+            submitFinalArt: () => {
+                const finalPrice = parseFloat(document.getElementById('finalPriceInput').value);
+                if (isNaN(finalPrice) || finalPrice <= 0) { alert('Укажите корректную финальную цену.'); return; }
+                api.submitFinalArt(state.activeOrderId, finalPrice);
+                state.showSubmitModal = false;
+                App.render();
+            },
+            requestRevision: () => {
+                api.requestRevision(state.activeOrderId);
+                App.render();
+            },
+            completeOrder: () => {
+                if (confirm('Одобрить заказ? Вы не сможете вернуть его на доработку.')) {
+                    api.completeOrder(state.activeOrderId);
+                    App.render();
+                }
+            },
+
             sendChatMessage: () => {
                 const input = document.getElementById('chatInput');
                 const text = input.value.trim();
-                
                 if (text) {
                     api.sendMessage(state.activeOrderId, text);
                     input.value = '';
@@ -774,7 +728,6 @@
                     
                     const order = state.mockOrders.find(o => o.id === state.activeOrderId);
                     order.messages.push({ sender: currentRole, text: text, date: new Date().toISOString() });
-                    
                     const chatDiv = document.getElementById('chat-messages');
                     if (chatDiv) {
                         chatDiv.innerHTML = renderChatMessagesOnly();
