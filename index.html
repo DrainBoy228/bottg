@@ -23,19 +23,18 @@
         }
     </script>
     <style>
-        body { background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); overflow: hidden; height: 100vh; display: flex; flex-direction: column;}
-        #app-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        body, html { height: 100%; margin: 0; overflow: hidden; background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s; }
+        #app-container { display: flex; flex-direction: column; height: 100dvh; max-width: 32rem; margin: 0 auto; }
+        #app-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
-        
         .glowing-dot { box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC; animation: pulse-glow 2s infinite; }
+        .dark .glowing-dot { box-shadow: 0 0 8px #A5737A, 0 0 12px #A5737A; }
         @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
-        
         .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; transition: border-color 0.2s ease; outline: none; }
         .dark .custom-input { background-color: #1E1E1E !important; border-color: #333333 !important; color: #f3f4f6 !important; }
         .custom-input:focus { border-color: #F4C7CC; }
-        
         .dark body { background-color: #121212 !important; color: #f3f4f6 !important; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
@@ -46,14 +45,18 @@
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased selection:bg-primaryPink selection:text-textDark overflow-x-hidden transition-colors duration-300">
 
-    <div id="app-header" class="shrink-0 sticky top-0 z-20 bg-bgCream/90 dark:bg-darkSurface/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></div>
-    <main id="app-content" class="w-full max-w-lg mx-auto relative pb-24"></main>
-    <nav id="app-bottom-nav" class="shrink-0 fixed bottom-0 w-full max-w-lg left-1/2 -translate-x-1/2 bg-white dark:bg-darkSurface border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-safe"></nav>
+    <div id="app-container" class="bg-bgCream dark:bg-darkBg w-full h-full">
+        <header id="app-header" class="shrink-0 sticky top-0 z-20 bg-bgCream/90 dark:bg-darkSurface/90 backdrop-blur-md border-b border-primaryPink/30 dark:border-primaryPink/10 px-4 py-4 flex justify-between items-center shadow-sm"></header>
+        <main id="app-content"></main>
+        <nav id="app-bottom-nav" class="shrink-0 fixed bottom-0 w-full max-w-lg left-1/2 -translate-x-1/2 bg-white dark:bg-darkSurface border-t border-primaryPink/30 dark:border-primaryPink/10 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-safe"></nav>
+    </div>
     <div id="modal-root" class="relative z-50"></div>
 
     <script>
+        // =========================================================================
         const API_URL = "https://bot-cpzd.onrender.com"; 
         const ARTIST_TELEGRAM_ID = 5800436089; 
+        // =========================================================================
 
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); try { tg.setHeaderColor(tg.colorScheme === 'dark' ? '#121212' : '#FDFBF7'); } catch (e) {} }
@@ -88,7 +91,7 @@
                 unread: 'Новое', pending: 'Ожидает', accepted: 'В работе', banned: 'В бане', chatPlaceholder: 'Сообщение...', send: 'Отправить', priceSetAt: 'Цена:', back: 'Назад', status: 'Статус',
                 success: 'Успешно!', orderSent: 'Ваша заявка отправлена.', currency: 'Валюта', byn: 'BYN', stars: 'Звезды',
                 cancelOrder: 'Отменить заказ', submitArt: 'Сдать работу', watermarkWarning: 'ВНИМАНИЕ: Вы поставили водяной знак?',
-                finalPrice: 'Итоговая цена', requestRevision: 'Доработать (Правки)', approvePay: 'Одобрить и Оплатить', cancelled: 'Отменен', completed: 'Завершен', inReview: 'На проверке', waitReview: 'Ожидает проверки клиентом',
+                finalPrice: 'Итоговая цена', requestRevision: 'Доработать (Правки)', approvePay: 'Одобрить и Оплатить', cancelled: 'Отменен', completed: 'Завершен', inReview: 'На проверке', waitReview: 'Ожидает проверки художником',
                 cancelConfirm: 'Вы уверены, что хотите отменить заказ?', submitFinalBtn: 'Сдать работу'
             }
         };
@@ -132,10 +135,12 @@
                 payload.initData = tgInitDataRaw; 
                 try {
                     const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    if(!res.ok) throw new Error("Server Error");
+                    if(!res.ok) {
+                        const errText = await res.text();
+                        throw new Error(`Ошибка сервера: ${res.status}`);
+                    }
                     await api.sync(); 
                 } catch (e) { 
-                    UI.showAlert("❌ Нет связи с сервером. Повторите попытку позже."); 
                     throw e; 
                 }
             },
@@ -223,6 +228,23 @@
         }
 
         function renderCustomerForm() {
+            // Отрисовка миниатюр с крестиком
+            let imagesPreview = '';
+            if (state.draftImages.length > 0) {
+                imagesPreview = `<div class="flex gap-3 mt-4 overflow-x-auto pb-2">`;
+                state.draftImages.forEach((img, index) => {
+                    imagesPreview += `
+                        <div class="relative w-16 h-16 shrink-0">
+                            <img src="${img}" class="w-full h-full object-cover rounded-xl border border-primaryPink/30 shadow-sm">
+                            <button type="button" onclick="App.removeDraftImage(${index})" class="absolute -top-2 -right-2 bg-softRed text-white rounded-full p-1 shadow-md hover:scale-110 active:scale-95 transition-transform">
+                                <i data-lucide="x" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                imagesPreview += `</div>`;
+            }
+
             return `
                 <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
                     <div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-sm border border-primaryPink/10 dark:border-primaryPink/20">
@@ -243,11 +265,16 @@
                             </div>
                             <div>
                                 <label class="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-primaryPink/40 rounded-xl bg-primaryPink/5 dark:bg-primaryPink/10 cursor-pointer hover:bg-primaryPink/10 text-textDark dark:text-white transition-colors">
-                                    <i data-lucide="image-plus" class="w-5 h-5 text-primaryPink"></i><span class="font-medium text-sm" id="uploadLabel">${state.draftImages.length > 0 ? `${state.draftImages.length}${t('filesAttached')}` : t('uploadBtn')}</span>
+                                    <i data-lucide="image-plus" class="w-5 h-5 text-primaryPink"></i>
+                                    <span class="font-medium text-sm" id="uploadLabel">${state.draftImages.length > 0 ? `${state.draftImages.length} из 3 ${t('filesAttached')}` : t('uploadBtn')}</span>
                                     <input type="file" accept="image/png, image/jpeg, image/jpg" class="hidden" multiple onchange="App.handleFormUpload(event)">
                                 </label>
+                                ${imagesPreview}
                             </div>
-                            <button type="submit" class="w-full bg-primaryPink text-darkBg font-bold py-4 rounded-xl active:scale-[0.98] flex justify-center gap-2"><i data-lucide="send" class="w-5 h-5"></i> ${t('submitBtn')}</button>
+                            <button id="submitBtn" type="submit" class="w-full bg-primaryPink text-darkBg font-bold py-4 rounded-xl active:scale-[0.98] flex justify-center gap-2 transition-all">
+                                <i data-lucide="send" class="w-5 h-5" id="submitIcon"></i> 
+                                <span id="submitText">${t('submitBtn')}</span>
+                            </button>
                         </form>
                     </div>
                 </div>`;
@@ -398,14 +425,14 @@
                 setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 10);
             },
             switchTab: (id) => { 
+                // СБРОС ФОРМЫ при переходе по вкладкам
+                state.draftDesc = ''; 
+                state.draftImages = []; 
+                state.draftType = 'portrait';
+                
                 state.tab = id; 
                 state.view = 'main'; 
                 state.activeOrderId = null; 
-                if (id !== 'order_art') {
-                    state.draftDesc = '';
-                    state.draftImages = [];
-                    state.draftType = 'portrait';
-                }
                 App.render(); 
             },
             setLang: (l) => { state.lang = l; App.render(); },
@@ -424,11 +451,27 @@
             
             handleFormUpload: async (e) => {
                 const files = Array.from(e.target.files).slice(0, 3);
-                state.draftImages = await Promise.all(files.map(f => compressImage(f)));
-                document.getElementById('uploadLabel').innerText = `${state.draftImages.length} ${t('filesAttached')}`;
+                const newImages = await Promise.all(files.map(f => compressImage(f)));
+                state.draftImages = [...state.draftImages, ...newImages].slice(0, 3); // Максимум 3 фото
+                App.render();
+            },
+            removeDraftImage: (index) => {
+                state.draftImages.splice(index, 1);
+                App.render();
             },
             submitOrder: async (e) => {
                 e.preventDefault();
+                
+                // Визуально блокируем кнопку и показываем статус
+                const btn = document.getElementById('submitBtn');
+                const btnText = document.getElementById('submitText');
+                const btnIcon = document.getElementById('submitIcon');
+                btn.disabled = true;
+                btn.classList.add('opacity-50');
+                btnText.innerText = 'Отправка... (ждите)';
+                if(btnIcon) btnIcon.setAttribute('data-lucide', 'loader-2');
+                if (window.lucide) window.lucide.createIcons();
+
                 try {
                     await api.createOrder(document.getElementById('formType').value, document.getElementById('formDesc').value, state.draftImages);
                     state.draftImages = []; 
@@ -438,7 +481,14 @@
                     if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else UI.showAlert(t('orderSent'));
                     App.switchTab('profile'); 
                 } catch(err) {
-                    // Ошибка выведена в api.postAction, текст остается на месте
+                    // Если ошибка, возвращаем кнопку в нормальное состояние
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    btnText.innerText = t('submitBtn');
+                    if(btnIcon) btnIcon.setAttribute('data-lucide', 'send');
+                    if (window.lucide) window.lucide.createIcons();
+                    
+                    UI.showAlert(`❌ Ошибка сети: ${err.message}. Сервер просыпается, пожалуйста, подождите 30 секунд и нажмите еще раз!`);
                 }
             },
             acceptCurrentOrder: () => {
