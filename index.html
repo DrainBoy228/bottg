@@ -28,11 +28,14 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
+        
         .glowing-dot { box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC; animation: pulse-glow 2s infinite; }
         @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
+        
         .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; transition: border-color 0.2s ease; outline: none; }
         .dark .custom-input { background-color: #1E1E1E !important; border-color: #333333 !important; color: #f3f4f6 !important; }
         .custom-input:focus { border-color: #F4C7CC; }
+        
         .dark body { background-color: #121212 !important; color: #f3f4f6 !important; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
@@ -49,10 +52,8 @@
     <div id="modal-root" class="relative z-50"></div>
 
     <script>
-        // =========================================================================
-        const API_URL = "https://bot-cpzd.onrender.com"; // <-- ВСТАВЬ СЮДА ССЫЛКУ ИЗ RENDER.COM
+        const API_URL = "https://bot-cpzd.onrender.com"; 
         const ARTIST_TELEGRAM_ID = 5800436089; 
-        // =========================================================================
 
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); try { tg.setHeaderColor(tg.colorScheme === 'dark' ? '#121212' : '#FDFBF7'); } catch (e) {} }
@@ -184,7 +185,8 @@
                 }
                 header.innerHTML = `<div class="flex items-center text-textDark dark:text-white"><button onclick="App.goBack()" class="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><i data-lucide="chevron-left" class="w-6 h-6"></i></button><h1 class="font-bold text-lg truncate mx-2">${order ? t('types', order.type) : t('back')}</h1>${extraInfo}</div><div>${cancelBtn}</div>`;
             } else {
-                header.innerHTML = `<div class="flex items-center gap-3"><div class="w-10 h-10 bg-primaryPink rounded-2xl flex items-center justify-center"><i data-lucide="palette" class="w-6 h-6 text-darkBg"></i></div><h1 class="font-bold text-xl text-textDark dark:text-white">${t('appTitle')}</h1></div><div class="flex items-center gap-2"></div>`;
+                let rightAction = currentRole === 'artist' ? `<button onclick="App.toggleTheme()" class="p-2 rounded-full border border-primaryPink/20 hover:bg-black/5 dark:hover:bg-white/5 text-textDark dark:text-white"><div class="w-5 h-5 flex items-center justify-center"><i data-lucide="${state.isDark?'sun':'moon'}" class="w-5 h-5"></i></div></button>` : '';
+                header.innerHTML = `<div class="flex items-center gap-3"><div class="w-10 h-10 bg-primaryPink rounded-2xl flex items-center justify-center"><i data-lucide="palette" class="w-6 h-6 text-darkBg"></i></div><h1 class="font-bold text-xl text-textDark dark:text-white">${t('appTitle')}</h1></div><div class="flex items-center gap-2">${rightAction}</div>`;
             }
         }
 
@@ -263,6 +265,9 @@
                 <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
                     <div class="bg-white dark:bg-darkSurface p-5 rounded-3xl shadow-sm border border-primaryPink/10 dark:border-primaryPink/20 flex items-center justify-between">
                         <div class="flex items-center gap-4">${getAvatar(tgPhoto, tgUserName, '14')}<div><h3 class="font-bold text-lg text-textDark dark:text-white">${tgUserName}</h3></div></div>
+                        <div class="flex flex-col gap-2 items-end">
+                            <button onclick="App.toggleTheme()" class="flex items-center gap-2 text-xs font-bold bg-bgCream dark:bg-darkBg text-textDark dark:text-gray-200 px-3 py-1.5 rounded-lg border border-primaryPink/20"><i data-lucide="${state.isDark?'sun':'moon'}" class="w-3.5 h-3.5"></i> ${t('darkMode')}</button>
+                        </div>
                     </div>
                     <div><h3 class="font-bold text-sm ml-2 mb-3 opacity-60 uppercase text-textDark dark:text-white">${t('orderHistory')}</h3>${html}</div>
                 </div>`;
@@ -392,8 +397,23 @@
                 
                 setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 10);
             },
-            switchTab: (id) => { state.tab = id; state.view = 'main'; state.activeOrderId = null; App.render(); },
+            switchTab: (id) => { 
+                state.tab = id; 
+                state.view = 'main'; 
+                state.activeOrderId = null; 
+                if (id !== 'order_art') {
+                    state.draftDesc = '';
+                    state.draftImages = [];
+                    state.draftType = 'portrait';
+                }
+                App.render(); 
+            },
             setLang: (l) => { state.lang = l; App.render(); },
+            toggleTheme: () => { 
+                state.isDark = !state.isDark; 
+                document.documentElement.classList.toggle('dark', state.isDark); 
+                App.render(); 
+            },
             openOrder: (id) => {
                 state.activeOrderId = id; const o = state.mockOrders.find(x => x.id === id);
                 if (currentRole === 'artist' && o.status === 'pending' && !o.isRead) api.markAsRead(id);
@@ -412,7 +432,8 @@
                 try {
                     await api.createOrder(document.getElementById('formType').value, document.getElementById('formDesc').value, state.draftImages);
                     state.draftImages = []; 
-                    state.draftDesc = ''; // Стираем черновик, если всё успешно
+                    state.draftDesc = ''; 
+                    state.draftType = 'portrait';
                     document.getElementById('orderForm').reset(); 
                     if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else UI.showAlert(t('orderSent'));
                     App.switchTab('profile'); 
