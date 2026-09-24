@@ -134,11 +134,14 @@
             };
         });
 
-        // ВАЖНОЕ ИСПРАВЛЕНИЕ: ВОЗВРАЩЕНА ФУНКЦИЯ ДАТЫ
         const formatDate = (isoStr) => {
             if (!isoStr) return '';
             const d = new Date(isoStr);
-            return d.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            return d.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' });
+        };
+        const formatTime = (isoStr) => {
+            if (!isoStr) return '';
+            return new Date(isoStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
         };
 
         const formatPrice = (p, c) => p ? (c === 'Stars' ? `${p} ⭐` : `${p} ${c}`) : '';
@@ -165,12 +168,9 @@
                 payload.initData = tgInitDataRaw; 
                 try {
                     const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    if(!res.ok) {
-                        throw new Error(`Ошибка сервера: ${res.status}`);
-                    }
+                    if(!res.ok) throw new Error(`Ошибка сервера`);
                     await api.sync(); 
                 } catch (e) { 
-                    UI.showAlert("❌ Нет связи с сервером. Повторите попытку позже."); 
                     throw e; 
                 }
             },
@@ -185,7 +185,7 @@
             banUser: (id) => api.postAction(`/api/order/${id}/ban`),
             unbanUser: (id) => api.postAction(`/api/order/${id}/unban`),
             markAsRead: (id) => api.postAction(`/api/order/${id}/read`),
-            sendMessage: (id, text, photoStr) => api.postAction(`/api/order/${id}/message`, { text, photoStr }) 
+            sendMessage: (id, text, photoStr) => api.postAction(`/api/order/${id}/message`, { text, photo: photoStr }) 
         };
 
         const UI = {
@@ -202,7 +202,7 @@
             showSubmitArtModal: (order, onConfirm) => {
                 const root = document.getElementById('modal-root');
                 window._sa = () => { root.innerHTML=''; onConfirm(document.getElementById('finalPriceInput').value); };
-                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4">${I.checkCircle}</div><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3><p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i> ${t('watermarkWarning')}</p><label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label><input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0"><div class="flex gap-3"><button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button><button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button></div></div></div>`;
+                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4">${I.checkCircle}</div><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3><p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2">ВНИМАНИЕ: Вы поставили водяной знак?</p><label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label><input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0"><div class="flex gap-3"><button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button><button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button></div></div></div>`;
             }
         };
 
@@ -401,7 +401,8 @@
 
         function renderChatMessagesOnly() {
             const order = state.mockOrders.find(o => o.id === state.activeOrderId);
-            if (!order) return '';
+            if (!order || !order.messages) return renderEmptyState('Чат', 'Здесь можно обсудить детали.', I.coffee);
+            
             const msgs = order.messages.map(m => {
                 if (m.sender === 'system') return `<div class="flex justify-center my-4"><span class="bg-primaryPink/20 border border-primaryPink/30 text-textDark dark:text-white text-xs font-bold px-4 py-1.5 rounded-full text-center">${m.text}</span></div>`;
                 const isMe = m.sender === currentRole;
@@ -409,7 +410,7 @@
                 return `
                     <div class="flex w-full mb-4 ${isMe ? 'justify-end' : 'justify-start'}">
                         <div class="max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${isMe ? 'bg-primaryPink text-darkBg rounded-tr-sm' : 'bg-white dark:bg-darkSurface text-textDark dark:text-gray-100 dark:border-primaryPink/25 border border-primaryPink/10 rounded-tl-sm'}">
-                            ${photo}<p class="text-sm leading-relaxed whitespace-pre-wrap break-words">${m.text}</p>${m.date ? `<p class="text-[10px] opacity-50 mt-1 text-right">${formatDate(m.date).split(',')[1]}</p>` : ''}
+                            ${photo}<p class="text-sm leading-relaxed whitespace-pre-wrap break-words">${m.text}</p>${m.date ? `<p class="text-[10px] opacity-50 mt-1 text-right">${formatTime(m.date)}</p>` : ''}
                         </div>
                     </div>`;
             }).join('');
@@ -429,7 +430,7 @@
                             <div class="flex gap-2 items-end">
                                 <label class="cursor-pointer p-3 bg-bgCream dark:bg-darkBg text-textDark dark:text-white rounded-xl border border-primaryPink/30 shrink-0 hover:bg-primaryPink/10"><input type="file" id="chatPhoto" class="hidden" accept="image/png, image/jpeg, image/jpg">${I.imagePlus}</label>
                                 <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height=''; this.style.height=Math.min(this.scrollHeight,120)+'px';"></textarea>
-                                <button onclick="App.sendChat()" class="bg-primaryPink text-darkBg w-12 h-12 rounded-xl flex items-center justify-center shrink-0 active:scale-95">${I.send}</button>
+                                <button onclick="App.sendChat()" id="sendBtn" class="bg-primaryPink text-darkBg w-12 h-12 rounded-xl flex items-center justify-center shrink-0 active:scale-95">${I.send}</button>
                             </div>
                         </div>`;
                 } else {
@@ -437,7 +438,7 @@
                         <div class="bg-white dark:bg-darkSurface border-t border-primaryPink/30 p-3 shrink-0 flex gap-2 items-end pb-safe-offset-4">
                             <label class="cursor-pointer p-3 bg-bgCream dark:bg-darkBg text-textDark dark:text-white rounded-xl border border-primaryPink/30 shrink-0 hover:bg-primaryPink/10"><input type="file" id="chatPhoto" class="hidden" accept="image/png, image/jpeg, image/jpg">${I.imagePlus}</label>
                             <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height=''; this.style.height=Math.min(this.scrollHeight,120)+'px';"></textarea>
-                            <button onclick="App.sendChat()" class="bg-primaryPink text-darkBg w-12 h-12 rounded-xl flex items-center justify-center shrink-0 active:scale-95">${I.send}</button>
+                            <button onclick="App.sendChat()" id="sendBtn" class="bg-primaryPink text-darkBg w-12 h-12 rounded-xl flex items-center justify-center shrink-0 active:scale-95">${I.send}</button>
                         </div>`;
                 }
             } else if (order.status === 'in_review') {
@@ -487,6 +488,7 @@
             },
             openOrder: (id) => {
                 state.activeOrderId = id; const o = state.mockOrders.find(x => x.id === id);
+                if (!o) return;
                 if (currentRole === 'artist' && o.status === 'pending' && !o.isRead) api.markAsRead(id);
                 state.view = ['accepted', 'in_review', 'completed', 'cancelled'].includes(o.status) ? 'chat' : 'order_detail';
                 App.render();
@@ -505,13 +507,12 @@
             },
             submitOrder: async (e) => {
                 e.preventDefault();
-                
                 const btn = document.getElementById('submitBtn');
                 const btnText = document.getElementById('submitText');
                 const btnIcon = document.getElementById('submitIcon');
                 btn.disabled = true;
                 btn.classList.add('opacity-50');
-                btnText.innerText = 'Отправка... (может занять до 1 мин)';
+                btnText.innerText = 'Отправка... (до 10 сек)';
                 if(btnIcon) btnIcon.innerHTML = ''; 
 
                 try {
@@ -519,7 +520,6 @@
                     state.draftImages = []; 
                     state.draftDesc = ''; 
                     state.draftType = 'portrait';
-                    document.getElementById('orderForm').reset(); 
                     if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else UI.showAlert(t('orderSent'));
                     App.switchTab('profile'); 
                 } catch(err) {
@@ -542,19 +542,36 @@
             sendChat: async () => {
                 const input = document.getElementById('chatInput');
                 const photoInput = document.getElementById('chatPhoto');
+                const btn = document.getElementById('sendBtn');
                 const text = input.value.trim();
                 let photoStr = null;
 
                 if (photoInput && photoInput.files.length) {
                     photoStr = await compressImage(photoInput.files[0]);
                 }
-                if (text || photoStr) {
-                    api.sendMessage(state.activeOrderId, text, photoStr);
-                    input.value = ''; input.style.height = ''; if(photoInput) photoInput.value = '';
+                if (!text && !photoStr) return;
+
+                input.disabled = true;
+                if(btn) btn.classList.add('opacity-50');
+
+                try {
+                    // Сразу добавляем сообщение на экран для быстроты
                     const o = state.mockOrders.find(x => x.id === state.activeOrderId);
-                    o.messages.push({ sender: currentRole, text: text, photo: photoStr, date: new Date().toISOString() });
-                    const chatDiv = document.getElementById('chat-messages');
-                    if (chatDiv) { chatDiv.innerHTML = renderChatMessagesOnly(); chatDiv.scrollTop = chatDiv.scrollHeight; }
+                    if (o) {
+                        if (!o.messages) o.messages = [];
+                        o.messages.push({ sender: currentRole, text: text, photo: photoStr, date: new Date().toISOString() });
+                        const chatDiv = document.getElementById('chat-messages');
+                        if (chatDiv) { chatDiv.innerHTML = renderChatMessagesOnly(); chatDiv.scrollTop = chatDiv.scrollHeight; }
+                    }
+                    input.value = ''; input.style.height = ''; if(photoInput) photoInput.value = '';
+                    
+                    // Отправляем на сервер
+                    await api.sendMessage(state.activeOrderId, text, photoStr);
+                } catch (err) {
+                    UI.showAlert("❌ Сообщение не отправлено. Ошибка сети.");
+                } finally {
+                    input.disabled = false;
+                    if(btn) btn.classList.remove('opacity-50');
                 }
             }
         };
