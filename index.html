@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Artist Commission Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <script>
@@ -23,9 +22,8 @@
         }
     </script>
     <style>
-        body, html { height: 100%; margin: 0; overflow: hidden; background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s; }
-        #app-container { display: flex; flex-direction: column; height: 100dvh; max-width: 32rem; margin: 0 auto; }
-        #app-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+        body { background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); overflow: hidden; height: 100vh; display: flex; flex-direction: column;}
+        #app-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
@@ -54,7 +52,7 @@
 
     <script>
         // =========================================================================
-        const API_URL = "https://bot-cpzd.onrender.com"; // <-- ВСТАВЬ СЮДА ССЫЛКУ ИЗ RENDER.COM
+        const API_URL = "https://bot-cpzd.onrender.com"; 
         const ARTIST_TELEGRAM_ID = 5800436089; 
         // =========================================================================
 
@@ -114,7 +112,7 @@
                 success: 'Успешно!', orderSent: 'Ваша заявка отправлена.', currency: 'Валюта', byn: 'BYN', stars: 'Звезды',
                 cancelOrder: 'Отменить заказ', submitArt: 'Сдать работу', watermarkWarning: 'ВНИМАНИЕ: Вы поставили водяной знак?',
                 finalPrice: 'Итоговая цена', requestRevision: 'Доработать (Правки)', approvePay: 'Одобрить и Оплатить', cancelled: 'Отменен', completed: 'Завершен', inReview: 'На проверке', waitReview: 'Ожидает проверки клиентом',
-                cancelConfirm: 'Вы уверены, что хотите отменить заказ?', submitFinalBtn: 'Сдать работу'
+                cancelConfirm: 'Вы уверены, что хотите отменить заказ?', submitFinalBtn: 'Сдать работу', declined: 'Отклонен'
             }
         };
 
@@ -135,6 +133,16 @@
                 };
             };
         });
+
+        // ВАЖНОЕ ИСПРАВЛЕНИЕ: ВОЗВРАЩЕНА ФУНКЦИЯ ДАТЫ
+        const formatDate = (isoStr) => {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            return d.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        };
+
+        const formatPrice = (p, c) => p ? (c === 'Stars' ? `${p} ⭐` : `${p} ${c}`) : '';
+        const getAvatar = (url, name, s='10') => url ? `<img src="${url}" class="w-${s} h-${s} rounded-full border-2 border-primaryPink object-cover shrink-0">` : `<div class="w-${s} h-${s} bg-bgCream dark:bg-darkBg rounded-full border-2 border-primaryPink flex items-center justify-center shrink-0">${I.user}</div>`;
 
         const api = {
             sync: async () => {
@@ -162,6 +170,7 @@
                     }
                     await api.sync(); 
                 } catch (e) { 
+                    UI.showAlert("❌ Нет связи с сервером. Повторите попытку позже."); 
                     throw e; 
                 }
             },
@@ -176,7 +185,7 @@
             banUser: (id) => api.postAction(`/api/order/${id}/ban`),
             unbanUser: (id) => api.postAction(`/api/order/${id}/unban`),
             markAsRead: (id) => api.postAction(`/api/order/${id}/read`),
-            sendMessage: (id, text, photoStr) => api.postAction(`/api/order/${id}/message`, { text, photo: photoStr }) 
+            sendMessage: (id, text, photoStr) => api.postAction(`/api/order/${id}/message`, { text, photoStr }) 
         };
 
         const UI = {
@@ -196,9 +205,6 @@
                 root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4">${I.checkCircle}</div><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3><p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i> ${t('watermarkWarning')}</p><label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label><input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0"><div class="flex gap-3"><button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button><button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button></div></div></div>`;
             }
         };
-
-        const formatPrice = (p, c) => p ? (c === 'Stars' ? `${p} ⭐` : `${p} ${c}`) : '';
-        const getAvatar = (url, name, s='10') => url ? `<img src="${url}" class="w-${s} h-${s} rounded-full border-2 border-primaryPink object-cover shrink-0">` : `<div class="w-${s} h-${s} bg-bgCream dark:bg-darkBg rounded-full border-2 border-primaryPink flex items-center justify-center shrink-0">${I.user}</div>`;
 
         function renderHeader() {
             const header = document.getElementById('app-header');
@@ -316,7 +322,6 @@
                     </div>
                 </div>`).join('') : renderEmptyState(t('emptyOrdersTitle'), t('emptyOrdersDesc'), I.coffee);
 
-            // Обрати внимание на pb-32 в самом первом div - это обеспечит идеальную прокрутку, если заказов очень много!
             return `
                 <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out] pb-32">
                     <div class="bg-white dark:bg-darkSurface p-5 rounded-3xl shadow-sm border border-primaryPink/10 dark:border-primaryPink/20 flex items-center justify-between">
@@ -333,7 +338,6 @@
             let emptyTitle, emptyDesc, emptyIcon;
             let statusFilter = [];
             
-            // Жестко привязываем пустые экраны к вкладке
             if (state.tab === 'new_requests') {
                 statusFilter = ['pending'];
                 emptyTitle = t('emptyNewTitle'); emptyDesc = t('emptyNewDesc'); emptyIcon = I.coffee;
