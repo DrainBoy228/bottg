@@ -22,7 +22,6 @@
         }
     </script>
     <style>
-        /* Жесткий каркас, чтобы меню никогда не уезжало вверх */
         body, html { height: 100%; margin: 0; overflow: hidden; background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; }
         #app-container { display: flex; flex-direction: column; height: 100dvh; max-width: 32rem; margin: 0 auto; transition: background-color 0.3s; }
         #app-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
@@ -36,7 +35,6 @@
         .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; outline: none; transition: border-color 0.2s ease; }
         .custom-input:focus { border-color: #F4C7CC; }
         
-        /* Темная тема */
         .dark { background-color: #1E1A1B; color: #E8E4E5; }
         .dark .bg-white { background-color: #2A2426 !important; }
         .dark .bg-bgCream { background-color: #1E1A1B !important; }
@@ -61,7 +59,6 @@
 </head>
 <body class="selection:bg-primaryPink selection:text-textDark transition-colors duration-300">
 
-    <!-- Абсолютно жесткая структура. Ничего не уедет. -->
     <div id="app-container" class="bg-bgCream dark:bg-darkBg w-full h-full">
         <header id="app-header" class="shrink-0 z-20 bg-bgCream/90 dark:bg-darkBg/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></header>
         <main id="app-content"></main>
@@ -71,14 +68,12 @@
 
     <script>
         // =========================================================================
-        // ВНИМАНИЕ: СЮДА НУЖНО ВСТАВИТЬ ССЫЛКУ NGROK ВИДА https://xxxx.ngrok-free.app
         const API_URL = "https://2e03352168fd8f.lhr.life"; 
         const ARTIST_TELEGRAM_ID = 5800436089; 
         // =========================================================================
 
-        // Защита от запуска локалхоста на Гитхабе
         if (window.location.protocol === 'https:' && API_URL.includes('127.0.0.1')) {
-            alert("КРИТИЧЕСКАЯ ОШИБКА: GitHub Pages (HTTPS) не может отправлять заказы на локальный сервер (HTTP). Вставьте ссылку от ngrok в переменную API_URL в коде!");
+            alert("КРИТИЧЕСКАЯ ОШИБКА: GitHub Pages (HTTPS) не может отправлять заказы на локальный сервер (HTTP). Вставьте ссылку от localhost.run в переменную API_URL в коде!");
         }
 
         const tg = window.Telegram?.WebApp;
@@ -152,7 +147,6 @@
             };
         });
 
-        // БЕЗОПАСНЫЙ API
         const api = {
             sync: async () => {
                 try {
@@ -168,7 +162,7 @@
                             } else App.render();
                         }
                     }
-                } catch (e) {} // Тихо ждем восстановления сети
+                } catch (e) {} 
             },
             postAction: async (endpoint, payload = {}) => {
                 payload.initData = tgInitDataRaw; 
@@ -176,7 +170,7 @@
                     const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
                     if(!res.ok) throw new Error("Security/Server Error");
                     await api.sync();
-                } catch (e) { alert("Ошибка соединения. Убедитесь, что Ngrok запущен и ссылка верная."); }
+                } catch (e) { alert("Ошибка соединения. Убедитесь, что localhost.run запущен и ссылка верная."); }
             },
             createOrder: (type, desc, refs) => api.postAction(`/api/order`, { customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type, description: desc, references: refs }),
             acceptOrder: (id, price, cur) => api.postAction(`/api/order/${id}/accept`, { price, currency: cur }),
@@ -421,17 +415,17 @@
                         </div>`;
                 } else {
                     controls = `
-                        <div class="bg-white border-t border-primaryPink/30 p-3 shrink-0 flex gap-2 items-end">
+                        <div class="bg-white border-t border-primaryPink/30 p-3 shrink-0 flex gap-2 items-end pb-safe-offset-4">
                             <label class="cursor-pointer p-3 bg-bgCream dark:bg-darkBg rounded-xl border border-primaryPink/30 shrink-0 hover:bg-primaryPink/10"><i data-lucide="image" class="w-5 h-5"></i><input type="file" id="chatPhoto" class="hidden" accept="image/png, image/jpeg, image/jpg"></label>
                             <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height=''; this.style.height=Math.min(this.scrollHeight,120)+'px';"></textarea>
                             <button onclick="App.sendChat()" class="bg-primaryPink text-darkBg w-12 h-12 rounded-xl flex items-center justify-center shrink-0 active:scale-95"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
                         </div>`;
                 }
             } else if (order.status === 'in_review') {
-                if (currentRole === 'customer') controls = `<div class="p-3 bg-white border-t border-primaryPink/30 flex gap-2"><button onclick="api.requestRevision('${order.id}'); App.render();" class="flex-1 border-2 border-primaryPink/40 font-bold py-3 rounded-xl active:scale-95">${t('requestRevision')}</button><button onclick="UI.showConfirm('Одобрить заказ?', ()=>{api.completeOrder('${order.id}'); App.render();})" class="flex-[1.5] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95 shadow-md">${t('approvePay')}</button></div>`;
-                else controls = `<div class="p-4 text-center text-sm font-bold opacity-60">${t('waitReview')}</div>`;
+                if (currentRole === 'customer') controls = `<div class="p-3 bg-white border-t border-primaryPink/30 flex gap-2 pb-safe-offset-4"><button onclick="api.requestRevision('${order.id}'); App.render();" class="flex-1 border-2 border-primaryPink/40 font-bold py-3 rounded-xl active:scale-95">${t('requestRevision')}</button><button onclick="UI.showConfirm('Одобрить заказ?', ()=>{api.completeOrder('${order.id}'); App.render();})" class="flex-[1.5] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95 shadow-md">${t('approvePay')}</button></div>`;
+                else controls = `<div class="p-4 text-center text-sm font-bold opacity-60 pb-safe-offset-4">${t('waitReview')}</div>`;
             } else if (['completed', 'cancelled'].includes(order.status)) {
-                controls = `<div class="p-4 text-center text-sm font-bold opacity-60">${t(order.status)}</div>`;
+                controls = `<div class="p-4 text-center text-sm font-bold opacity-60 pb-safe-offset-4">${t(order.status)}</div>`;
             }
 
             return `<div class="flex flex-col h-full overflow-hidden w-full"><div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col">${renderChatMessagesOnly()}</div>${controls}</div>`;
@@ -451,7 +445,6 @@
                     setTimeout(() => { const c = document.getElementById('chat-messages'); if(c) c.scrollTop = c.scrollHeight; }, 50);
                 }
                 
-                // Надежный рендер иконок без пропадания
                 setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 10);
             },
             switchTab: (id) => { state.tab = id; state.view = 'main'; state.activeOrderId = null; App.render(); },
@@ -491,7 +484,9 @@
                 const text = input.value.trim();
                 let photoStr = null;
 
-                if (photoInput && photoInput.files.length) photoStr = await compressImage(photoInput.files[0]);
+                if (photoInput && photoInput.files.length) {
+                    photoStr = await compressImage(photoInput.files[0]);
+                }
                 if (text || photoStr) {
                     api.sendMessage(state.activeOrderId, text, photoStr);
                     input.value = ''; input.style.height = ''; if(photoInput) photoInput.value = '';
