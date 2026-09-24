@@ -22,16 +22,21 @@
         }
     </script>
     <style>
-        body { background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); overflow: hidden; height: 100vh; display: flex; flex-direction: column;}
-        #app-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        /* Жесткий каркас, чтобы меню никогда не уезжало вверх */
+        body, html { height: 100%; margin: 0; overflow: hidden; background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; }
+        #app-container { display: flex; flex-direction: column; height: 100dvh; max-width: 32rem; margin: 0 auto; transition: background-color 0.3s; }
+        #app-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+        
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
+        
         .glowing-dot { box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC; animation: pulse-glow 2s infinite; }
         @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
         .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; outline: none; transition: border-color 0.2s ease; }
         .custom-input:focus { border-color: #F4C7CC; }
         
+        /* Темная тема */
         .dark { background-color: #1E1A1B; color: #E8E4E5; }
         .dark .bg-white { background-color: #2A2426 !important; }
         .dark .bg-bgCream { background-color: #1E1A1B !important; }
@@ -46,27 +51,35 @@
         .dark .bg-primaryPink\/20 { background-color: rgba(165, 115, 122, 0.2) !important; }
         .dark .custom-input { background-color: #2A2426 !important; border-color: rgba(232, 228, 229, 0.1) !important; color: #E8E4E5 !important; }
         .dark .custom-input:focus { border-color: #A5737A !important; }
-        .dark nav { background-color: #2A2426 !important; border-color: rgba(165,115,122,0.3) !important; }
-        .dark #app-header { background-color: rgba(30, 26, 27, 0.9) !important; border-color: rgba(165,115,122,0.3) !important; }
         .dark .glowing-dot { box-shadow: 0 0 8px #A5737A, 0 0 12px #A5737A !important; }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .pb-safe-offset-4 { padding-bottom: calc(env(safe-area-inset-bottom) + 1rem); }
         .modal-overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
     </style>
 </head>
 <body class="selection:bg-primaryPink selection:text-textDark transition-colors duration-300">
 
-    <div id="app-header" class="shrink-0 z-20 bg-bgCream/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></div>
-    <main id="app-content" class="w-full max-w-lg mx-auto relative pb-20"></main>
-    <nav id="app-bottom-nav" class="shrink-0 w-full max-w-lg mx-auto bg-white border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-[env(safe-area-inset-bottom)]"></nav>
+    <!-- Абсолютно жесткая структура. Ничего не уедет. -->
+    <div id="app-container" class="bg-bgCream dark:bg-darkBg w-full h-full">
+        <header id="app-header" class="shrink-0 z-20 bg-bgCream/90 dark:bg-darkBg/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></header>
+        <main id="app-content"></main>
+        <nav id="app-bottom-nav" class="shrink-0 w-full bg-white dark:bg-darkSurface border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-[env(safe-area-inset-bottom)]"></nav>
+    </div>
     <div id="modal-root" class="relative z-50"></div>
 
     <script>
+        // =========================================================================
+        // ВНИМАНИЕ: СЮДА НУЖНО ВСТАВИТЬ ССЫЛКУ NGROK ВИДА https://xxxx.ngrok-free.app
+        const API_URL = "https://ТВОЙ_АДРЕС.ngrok-free.app"; 
         const ARTIST_TELEGRAM_ID = 5800436089; 
-        const API_URL = "http://127.0.0.1:8000";
+        // =========================================================================
+
+        // Защита от запуска локалхоста на Гитхабе
+        if (window.location.protocol === 'https:' && API_URL.includes('127.0.0.1')) {
+            alert("КРИТИЧЕСКАЯ ОШИБКА: GitHub Pages (HTTPS) не может отправлять заказы на локальный сервер (HTTP). Вставьте ссылку от ngrok в переменную API_URL в коде!");
+        }
 
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); try { tg.setHeaderColor('#FDFBF7'); } catch (e) {} }
@@ -75,7 +88,6 @@
         const tgUser = initData?.user?.id || Math.floor(Math.random() * 1000000000);
         const tgUserName = initData?.user?.first_name || 'Guest';
         const tgPhoto = initData?.user?.photo_url || null;
-        // Заглушка test_mode для работы в обычном браузере
         const tgInitDataRaw = tg?.initData || "test_mode";
 
         const currentRole = (tgUser === ARTIST_TELEGRAM_ID) ? 'artist' : 'customer';
@@ -140,6 +152,7 @@
             };
         });
 
+        // БЕЗОПАСНЫЙ API
         const api = {
             sync: async () => {
                 try {
@@ -155,7 +168,7 @@
                             } else App.render();
                         }
                     }
-                } catch (e) {}
+                } catch (e) {} // Тихо ждем восстановления сети
             },
             postAction: async (endpoint, payload = {}) => {
                 payload.initData = tgInitDataRaw; 
@@ -163,7 +176,7 @@
                     const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
                     if(!res.ok) throw new Error("Security/Server Error");
                     await api.sync();
-                } catch (e) { alert("Ошибка соединения с сервером."); }
+                } catch (e) { alert("Ошибка соединения. Убедитесь, что Ngrok запущен и ссылка верная."); }
             },
             createOrder: (type, desc, refs) => api.postAction(`/api/order`, { customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type, description: desc, references: refs }),
             acceptOrder: (id, price, cur) => api.postAction(`/api/order/${id}/accept`, { price, currency: cur }),
@@ -186,7 +199,7 @@
                 root.innerHTML = `
                     <div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
                         <div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out]">
-                            <h3 class="font-bold text-lg mb-2">Подтверждение</h3><p class="text-sm opacity-80 mb-6">${msg}</p>
+                            <h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">Подтверждение</h3><p class="text-sm opacity-80 mb-6">${msg}</p>
                             <div class="flex gap-3">
                                 <button onclick="window._cl()" class="flex-1 bg-bgCream dark:bg-darkBg border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95 transition-transform">Отмена</button>
                                 <button onclick="window._cf()" class="flex-1 bg-primaryPink text-darkBg font-bold py-3 rounded-xl shadow-md active:scale-95 transition-transform">Да</button>
@@ -201,7 +214,7 @@
                     <div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
                         <div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out]">
                             <div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4"><i data-lucide="image-check" class="w-6 h-6 text-primaryPink"></i></div>
-                            <h3 class="font-bold text-lg mb-2">${t('submitArt')}</h3>
+                            <h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3>
                             <p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i> ${t('watermarkWarning')}</p>
                             <label class="block text-sm font-bold mb-2">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label>
                             <input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0">
@@ -271,12 +284,12 @@
         }
 
         function renderEmptyState(title, desc, iconName) {
-            return `<div class="flex flex-col items-center justify-center p-10 text-center"><div class="w-24 h-24 bg-primaryPink/10 rounded-full flex items-center justify-center mb-6"><i data-lucide="${iconName}" class="w-12 h-12 text-primaryPink"></i></div><h3 class="font-bold text-xl mb-2">${title}</h3><p class="text-sm opacity-60 max-w-[200px] leading-relaxed">${desc}</p></div>`;
+            return `<div class="flex flex-col items-center justify-center p-10 text-center animate-[fadeIn_0.5s_ease-out]"><div class="w-24 h-24 bg-primaryPink/10 rounded-full flex items-center justify-center mb-6"><i data-lucide="${iconName}" class="w-12 h-12 text-primaryPink"></i></div><h3 class="font-bold text-xl mb-2">${title}</h3><p class="text-sm opacity-60 max-w-[200px] leading-relaxed">${desc}</p></div>`;
         }
 
         function renderCustomerForm() {
             return `
-                <div class="p-4 space-y-6">
+                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
                     <div class="bg-white p-6 rounded-3xl shadow-sm border border-primaryPink/10">
                         <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="sparkles" class="w-5 h-5 text-primaryPink"></i> ${t('formTitle')}</h2>
                         <form id="orderForm" onsubmit="App.submitOrder(event)" class="space-y-5">
@@ -291,7 +304,7 @@
                             <div>
                                 <label class="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-primaryPink/40 rounded-xl bg-primaryPink/5 cursor-pointer hover:bg-primaryPink/10">
                                     <i data-lucide="image-plus" class="w-5 h-5"></i><span class="font-medium text-sm" id="uploadLabel">${state.draftImages.length > 0 ? `${state.draftImages.length}${t('filesAttached')}` : t('uploadBtn')}</span>
-                                    <input type="file" accept="image/*" class="hidden" multiple onchange="App.handleFormUpload(event)">
+                                    <input type="file" accept="image/png, image/jpeg, image/jpg" class="hidden" multiple onchange="App.handleFormUpload(event)">
                                 </label>
                             </div>
                             <button type="submit" class="w-full bg-primaryPink text-darkBg font-bold py-4 rounded-xl active:scale-[0.98] flex justify-center gap-2"><i data-lucide="send" class="w-5 h-5"></i> ${t('submitBtn')}</button>
@@ -304,12 +317,12 @@
             const orders = state.mockOrders.filter(o => o.customerId === tgUser).slice().reverse();
             let html = orders.length ? orders.map(o => `
                 <div onclick="App.openOrder('${o.id}')" class="bg-white p-4 rounded-2xl mb-3 border border-primaryPink/10 cursor-pointer flex items-center justify-between">
-                    <div><div class="font-bold mb-1">${t('types', o.type)}</div><div class="text-xs px-2 py-1 bg-bgCream dark:bg-darkBg rounded-md border border-primaryPink/20 inline-block">${t(o.status)}</div></div>
+                    <div><div class="font-bold mb-1">${t('types', o.type)}</div><div class="text-xs px-2 py-1 bg-bgCream dark:bg-darkBg rounded-md border border-primaryPink/20 inline-block opacity-80">${t(o.status)}</div></div>
                     <div class="flex items-center gap-3">${o.price ? `<span class="font-bold text-primaryPink">${formatPrice(o.price, o.currency)}</span>` : ''}<i data-lucide="chevron-right" class="w-5 h-5 opacity-30"></i></div>
                 </div>`).join('') : renderEmptyState(t('emptyOrdersTitle'), t('emptyOrdersDesc'), 'history');
 
             return `
-                <div class="p-4 space-y-6">
+                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
                     <div class="bg-white p-5 rounded-3xl border border-primaryPink/10 flex items-center justify-between">
                         <div class="flex items-center gap-3">${getAvatar(tgPhoto, tgUserName, '14')}<div><h3 class="font-bold">${tgUserName}</h3></div></div>
                         <div class="flex flex-col gap-2 items-end">
@@ -327,16 +340,16 @@
 
             if (!orders.length) return renderEmptyState(state.tab === 'new_requests' ? t('emptyNewTitle') : (state.tab === 'banned' ? t('emptyBannedTitle') : t('emptyActiveTitle')), state.tab === 'new_requests' ? t('emptyNewDesc') : (state.tab === 'banned' ? t('emptyBannedDesc') : t('emptyActiveDesc')), state.tab === 'new_requests' ? 'coffee' : (state.tab === 'banned' ? 'shield-check' : 'check-circle-2'));
 
-            return `<div class="p-4 space-y-3">${orders.map(o => `
+            return `<div class="p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">${orders.map(o => `
                 <div ${state.tab !== 'banned' ? `onclick="App.openOrder('${o.id}')"` : ''} class="bg-white p-5 rounded-2xl shadow-sm border ${!o.isRead && state.tab==='new_requests' ? 'border-primaryPink' : 'border-primaryPink/10'} relative overflow-hidden${['completed', 'cancelled'].includes(o.status) ? 'opacity-60' : ''}">
                     ${!o.isRead && state.tab === 'new_requests' ? `<div class="absolute top-5 right-5 w-3 h-3 bg-primaryPink rounded-full glowing-dot"></div>` : ''}
-                    <div class="flex justify-between items-start mb-3">
+                    <div class="flex justify-between items-start mb-3 pr-6">
                         <div><h3 class="font-bold text-lg">${t('types', o.type)}</h3><div class="flex items-center gap-2 mt-1">${getAvatar(o.customerPhoto, o.customerName, '4')}<p class="text-xs opacity-60">${o.customerName}</p></div></div>
                         <div class="flex flex-col items-end gap-1">${o.price ? `<span class="font-bold bg-primaryPink/20 px-2 py-0.5 rounded text-sm">${formatPrice(o.price, o.currency)}</span>` : ''}${state.tab === 'active_works' ? `<span class="text-[10px] font-bold uppercase opacity-60">${t(o.status)}</span>` : ''}</div>
                     </div>
                     <p class="text-sm opacity-80 line-clamp-2 leading-relaxed bg-bgCream dark:bg-darkBg/50 p-3 rounded-xl border border-primaryPink/5">${o.description}</p>
                     <div class="mt-4 flex items-center justify-between text-xs font-medium">
-                        <span>${formatDate(o.date)}</span>${state.tab === 'banned' ? `<button onclick="App.unbanUser('${o.id}')" class="px-3 py-1.5 bg-primaryPink text-darkBg rounded-lg font-bold">${t('unban')}</button>` : `<span class="flex items-center gap-1 opacity-50">${state.tab === 'new_requests' ? 'Review' : 'Open'} <i data-lucide="arrow-right" class="w-3 h-3"></i></span>`}
+                        <span>${formatDate(o.date)}</span>${state.tab === 'banned' ? `<button onclick="App.unbanUser('${o.id}')" class="px-4 py-2 bg-textDark text-white dark:bg-white dark:text-textDark rounded-lg font-bold">${t('unban')}</button>` : `<span class="flex items-center gap-1 opacity-50">${state.tab === 'new_requests' ? 'Review' : 'Open'} <i data-lucide="arrow-right" class="w-3 h-3"></i></span>`}
                     </div>
                 </div>`).join('')}</div>`;
         }
@@ -401,24 +414,24 @@
                         <div class="bg-white border-t border-primaryPink/30 p-3 shrink-0">
                             <button onclick="UI.showSubmitArtModal(state.mockOrders.find(o=>o.id==='${order.id}'), (p) => { api.submitFinalArt('${order.id}', p); App.render(); })" class="w-full bg-bgCream dark:bg-darkBg border border-primaryPink/30 font-bold py-2 rounded-xl text-sm mb-3 flex justify-center items-center gap-2 hover:bg-primaryPink/10"><i data-lucide="upload-cloud" class="w-4 h-4"></i> ${t('submitArt')}</button>
                             <div class="flex gap-2 items-end">
-                                <label class="cursor-pointer p-3 bg-bgCream dark:bg-darkBg rounded-xl border border-primaryPink/30 shrink-0 hover:bg-primaryPink/10"><i data-lucide="image" class="w-5 h-5"></i><input type="file" id="chatPhoto" class="hidden" accept="image/*"></label>
+                                <label class="cursor-pointer p-3 bg-bgCream dark:bg-darkBg rounded-xl border border-primaryPink/30 shrink-0 hover:bg-primaryPink/10"><i data-lucide="image" class="w-5 h-5"></i><input type="file" id="chatPhoto" class="hidden" accept="image/png, image/jpeg, image/jpg"></label>
                                 <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height=''; this.style.height=Math.min(this.scrollHeight,120)+'px';"></textarea>
                                 <button onclick="App.sendChat()" class="bg-primaryPink text-darkBg w-12 h-12 rounded-xl flex items-center justify-center shrink-0 active:scale-95"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
                             </div>
                         </div>`;
                 } else {
                     controls = `
-                        <div class="bg-white border-t border-primaryPink/30 p-3 shrink-0 flex gap-2 items-end pb-safe-offset-4">
-                            <label class="cursor-pointer p-3 bg-bgCream dark:bg-darkBg rounded-xl border border-primaryPink/30 shrink-0 hover:bg-primaryPink/10"><i data-lucide="image" class="w-5 h-5"></i><input type="file" id="chatPhoto" class="hidden" accept="image/*"></label>
+                        <div class="bg-white border-t border-primaryPink/30 p-3 shrink-0 flex gap-2 items-end">
+                            <label class="cursor-pointer p-3 bg-bgCream dark:bg-darkBg rounded-xl border border-primaryPink/30 shrink-0 hover:bg-primaryPink/10"><i data-lucide="image" class="w-5 h-5"></i><input type="file" id="chatPhoto" class="hidden" accept="image/png, image/jpeg, image/jpg"></label>
                             <textarea id="chatInput" rows="1" class="flex-1 custom-input resize-none py-3" placeholder="${t('chatPlaceholder')}" oninput="this.style.height=''; this.style.height=Math.min(this.scrollHeight,120)+'px';"></textarea>
                             <button onclick="App.sendChat()" class="bg-primaryPink text-darkBg w-12 h-12 rounded-xl flex items-center justify-center shrink-0 active:scale-95"><i data-lucide="send" class="w-5 h-5 ml-1"></i></button>
                         </div>`;
                 }
             } else if (order.status === 'in_review') {
-                if (currentRole === 'customer') controls = `<div class="p-3 bg-white border-t border-primaryPink/30 flex gap-2 pb-safe-offset-4"><button onclick="api.requestRevision('${order.id}'); App.render();" class="flex-1 border-2 border-primaryPink/40 font-bold py-3 rounded-xl active:scale-95">${t('requestRevision')}</button><button onclick="UI.showConfirm('Одобрить заказ?', ()=>{api.completeOrder('${order.id}'); App.render();})" class="flex-[1.5] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95 shadow-md">${t('approvePay')}</button></div>`;
-                else controls = `<div class="p-4 text-center text-sm font-bold opacity-60 pb-safe-offset-4">${t('waitReview')}</div>`;
+                if (currentRole === 'customer') controls = `<div class="p-3 bg-white border-t border-primaryPink/30 flex gap-2"><button onclick="api.requestRevision('${order.id}'); App.render();" class="flex-1 border-2 border-primaryPink/40 font-bold py-3 rounded-xl active:scale-95">${t('requestRevision')}</button><button onclick="UI.showConfirm('Одобрить заказ?', ()=>{api.completeOrder('${order.id}'); App.render();})" class="flex-[1.5] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95 shadow-md">${t('approvePay')}</button></div>`;
+                else controls = `<div class="p-4 text-center text-sm font-bold opacity-60">${t('waitReview')}</div>`;
             } else if (['completed', 'cancelled'].includes(order.status)) {
-                controls = `<div class="p-4 text-center text-sm font-bold opacity-60 pb-safe-offset-4">${t(order.status)}</div>`;
+                controls = `<div class="p-4 text-center text-sm font-bold opacity-60">${t(order.status)}</div>`;
             }
 
             return `<div class="flex flex-col h-full overflow-hidden w-full"><div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col">${renderChatMessagesOnly()}</div>${controls}</div>`;
@@ -437,7 +450,9 @@
                     content.innerHTML = renderChat();
                     setTimeout(() => { const c = document.getElementById('chat-messages'); if(c) c.scrollTop = c.scrollHeight; }, 50);
                 }
-                if (window.lucide) window.lucide.createIcons();
+                
+                // Надежный рендер иконок без пропадания
+                setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 10);
             },
             switchTab: (id) => { state.tab = id; state.view = 'main'; state.activeOrderId = null; App.render(); },
             setLang: (l) => { state.lang = l; App.render(); },
@@ -476,16 +491,14 @@
                 const text = input.value.trim();
                 let photoStr = null;
 
-                if (photoInput && photoInput.files.length) {
-                    photoStr = await compressImage(photoInput.files[0]);
-                }
+                if (photoInput && photoInput.files.length) photoStr = await compressImage(photoInput.files[0]);
                 if (text || photoStr) {
                     api.sendMessage(state.activeOrderId, text, photoStr);
                     input.value = ''; input.style.height = ''; if(photoInput) photoInput.value = '';
                     const o = state.mockOrders.find(x => x.id === state.activeOrderId);
                     o.messages.push({ sender: currentRole, text: text, photo: photoStr, date: new Date().toISOString() });
                     const chatDiv = document.getElementById('chat-messages');
-                    if (chatDiv) { chatDiv.innerHTML = renderChatMessagesOnly(); chatDiv.scrollTop = chatDiv.scrollHeight; }
+                    if (chatDiv) { chatDiv.innerHTML = renderChatMessagesOnly(); chatDiv.scrollTop = chatDiv.scrollHeight; setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 10); }
                 }
             }
         };
