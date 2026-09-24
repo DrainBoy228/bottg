@@ -150,7 +150,8 @@
         const api = {
             sync: async () => {
                 try {
-                    const res = await fetch(`${API_URL}/api/sync?user_id=${tgUser}&init_data=${encodeURIComponent(tgInitDataRaw)}`);
+                    // АНТИКЭШ ТЕЛЕГРАМА: Добавляем _t=Date.now()
+                    const res = await fetch(`${API_URL}/api/sync?user_id=${tgUser}&init_data=${encodeURIComponent(tgInitDataRaw)}&_t=${Date.now()}`);
                     if (res.ok) {
                         const data = await res.json();
                         const newDataStr = JSON.stringify(data.orders);
@@ -168,9 +169,15 @@
                 payload.initData = tgInitDataRaw; 
                 try {
                     const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    if(!res.ok) throw new Error(`Ошибка сервера`);
+                    if(!res.ok) {
+                        throw new Error(`Ошибка сервера`);
+                    }
+                    const data = await res.json();
+                    if(data.status === 'banned') throw new Error("Художник ограничил вам доступ.");
                     await api.sync(); 
+                    return data;
                 } catch (e) { 
+                    UI.showAlert(`❌ ${e.message}`); 
                     throw e; 
                 }
             },
@@ -202,7 +209,7 @@
             showSubmitArtModal: (order, onConfirm) => {
                 const root = document.getElementById('modal-root');
                 window._sa = () => { root.innerHTML=''; onConfirm(document.getElementById('finalPriceInput').value); };
-                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4">${I.checkCircle}</div><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3><p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2">ВНИМАНИЕ: Вы поставили водяной знак?</p><label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label><input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0"><div class="flex gap-3"><button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button><button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button></div></div></div>`;
+                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4">${I.checkCircle}</div><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3><p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i> ${t('watermarkWarning')}</p><label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label><input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0"><div class="flex gap-3"><button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button><button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button></div></div></div>`;
             }
         };
 
@@ -362,7 +369,7 @@
                     </div>
                     <p class="text-sm opacity-80 line-clamp-2 leading-relaxed bg-bgCream dark:bg-darkBg p-3 rounded-xl border border-primaryPink/5 text-textDark dark:text-gray-200">${o.description}</p>
                     <div class="mt-4 flex items-center justify-between text-xs font-medium text-textDark dark:text-gray-300">
-                        <span>${formatDate(o.date)}</span>${state.tab === 'banned' ? `<button onclick="App.unbanUser('${o.id}')" class="px-4 py-2 bg-textDark dark:bg-white text-white dark:text-darkBg rounded-lg font-bold">${t('unban')}</button>` : `<span class="flex items-center gap-1 opacity-50">${state.tab === 'new_requests' ? 'Review' : 'Open'} ${I.chevronRight}</span>`}
+                        <span>${formatDate(o.date)}</span>${state.tab === 'banned' ? `<button onclick="App.unbanUser('${o.id}')" class="px-4 py-2 bg-textDark dark:bg-white text-white dark:text-darkBg rounded-lg font-bold">${t('unban')}</button>` : `<span class="flex items-center gap-1 opacity-50">${state.tab === 'new_requests' ? 'Открыть' : 'Открыть'} ${I.chevronRight}</span>`}
                     </div>
                 </div>`).join('')}</div>`;
         }
@@ -401,7 +408,7 @@
 
         function renderChatMessagesOnly() {
             const order = state.mockOrders.find(o => o.id === state.activeOrderId);
-            if (!order || !order.messages) return renderEmptyState('Чат', 'Здесь можно обсудить детали.', I.coffee);
+            if (!order || !order.messages || order.messages.length === 0) return renderEmptyState('Чат', 'Здесь можно обсудить детали.', I.coffee);
             
             const msgs = order.messages.map(m => {
                 if (m.sender === 'system') return `<div class="flex justify-center my-4"><span class="bg-primaryPink/20 border border-primaryPink/30 text-textDark dark:text-white text-xs font-bold px-4 py-1.5 rounded-full text-center">${m.text}</span></div>`;
@@ -414,7 +421,7 @@
                         </div>
                     </div>`;
             }).join('');
-            return msgs.length ? msgs : renderEmptyState('Чат', 'Здесь можно обсудить детали.', I.coffee);
+            return msgs;
         }
 
         function renderChat() {
@@ -507,12 +514,13 @@
             },
             submitOrder: async (e) => {
                 e.preventDefault();
+                
                 const btn = document.getElementById('submitBtn');
                 const btnText = document.getElementById('submitText');
                 const btnIcon = document.getElementById('submitIcon');
                 btn.disabled = true;
                 btn.classList.add('opacity-50');
-                btnText.innerText = 'Отправка... (до 10 сек)';
+                btnText.innerText = 'Отправка...';
                 if(btnIcon) btnIcon.innerHTML = ''; 
 
                 try {
@@ -520,6 +528,7 @@
                     state.draftImages = []; 
                     state.draftDesc = ''; 
                     state.draftType = 'portrait';
+                    document.getElementById('orderForm').reset(); 
                     if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else UI.showAlert(t('orderSent'));
                     App.switchTab('profile'); 
                 } catch(err) {
@@ -555,7 +564,6 @@
                 if(btn) btn.classList.add('opacity-50');
 
                 try {
-                    // Сразу добавляем сообщение на экран для быстроты
                     const o = state.mockOrders.find(x => x.id === state.activeOrderId);
                     if (o) {
                         if (!o.messages) o.messages = [];
@@ -565,7 +573,6 @@
                     }
                     input.value = ''; input.style.height = ''; if(photoInput) photoInput.value = '';
                     
-                    // Отправляем на сервер
                     await api.sendMessage(state.activeOrderId, text, photoStr);
                 } catch (err) {
                     UI.showAlert("❌ Сообщение не отправлено. Ошибка сети.");
