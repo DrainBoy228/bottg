@@ -23,39 +23,34 @@
         }
     </script>
     <style>
-        body, html { height: 100%; margin: 0; overflow: hidden; background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s; }
-        #app-container { display: flex; flex-direction: column; height: 100dvh; max-width: 32rem; margin: 0 auto; }
-        #app-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+        body { background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); overflow: hidden; height: 100vh; display: flex; flex-direction: column;}
+        #app-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
         .glowing-dot { box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC; animation: pulse-glow 2s infinite; }
-        .dark .glowing-dot { box-shadow: 0 0 8px #A5737A, 0 0 12px #A5737A; }
         @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
-        .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; outline: none; transition: border-color 0.2s ease; }
-        .custom-input:focus { border-color: #F4C7CC; }
-        .dark { background-color: #121212; color: #f3f4f6; }
-        .dark body { background-color: #121212; color: #f3f4f6; }
+        .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; transition: border-color 0.2s ease; outline: none; }
         .dark .custom-input { background-color: #1E1E1E !important; border-color: #333333 !important; color: #f3f4f6 !important; }
-        .dark .custom-input:focus { border-color: #A5737A !important; }
+        .custom-input:focus { border-color: #F4C7CC; }
+        .dark body { background-color: #121212 !important; color: #f3f4f6 !important; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .pb-safe-offset-4 { padding-bottom: calc(env(safe-area-inset-bottom) + 1rem); }
         .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
     </style>
 </head>
-<body class="selection:bg-primaryPink selection:text-textDark transition-colors duration-300">
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-primaryPink selection:text-textDark overflow-x-hidden transition-colors duration-300">
 
-    <div id="app-container" class="bg-bgCream dark:bg-darkBg w-full h-full">
-        <header id="app-header" class="shrink-0 z-20 bg-bgCream/90 dark:bg-darkBg/90 backdrop-blur-md border-b border-primaryPink/30 dark:border-primaryPink/10 px-4 py-4 flex justify-between items-center shadow-sm"></header>
-        <main id="app-content"></main>
-        <nav id="app-bottom-nav" class="shrink-0 w-full bg-white dark:bg-darkSurface border-t border-primaryPink/30 dark:border-primaryPink/10 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-[env(safe-area-inset-bottom)]"></nav>
-    </div>
+    <div id="app-header" class="shrink-0 sticky top-0 z-20 bg-bgCream/90 dark:bg-darkSurface/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></div>
+    <main id="app-content" class="w-full max-w-lg mx-auto relative pb-24"></main>
+    <nav id="app-bottom-nav" class="shrink-0 fixed bottom-0 w-full max-w-lg left-1/2 -translate-x-1/2 bg-white dark:bg-darkSurface border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-safe"></nav>
     <div id="modal-root" class="relative z-50"></div>
 
     <script>
         // =========================================================================
-        const API_URL = "71380c1b3b4891.lhr.life"; // <--- ВСТАВЬ СЮДА ССЫЛКУ ИЗ ЧЕРНОГО ОКНА LHR
+        const API_URL = "https://ТВОЙ-ПРОЕКТ.onrender.com"; // <-- ВСТАВЬ СЮДА ССЫЛКУ ИЗ RENDER.COM
         const ARTIST_TELEGRAM_ID = 5800436089; 
         // =========================================================================
 
@@ -73,12 +68,13 @@
         let state = {
             lang: 'ru', isDark: tg?.colorScheme === 'dark', 
             tab: currentRole === 'artist' ? 'new_requests' : 'order_art', 
-            view: 'main', activeOrderId: null, mockOrders: [], draftImages: [], _lastDataStr: ""
+            view: 'main', activeOrderId: null, mockOrders: [], 
+            draftType: 'portrait', draftDesc: '', draftImages: [], _lastDataStr: ""
         };
 
         const i18n = {
             ru: {
-                appTitle: 'Арт Студия', tabOrder: 'Заказать', tabProfile: 'Профиль', tabNew: 'Новые заявки', tabActive: 'В работе', tabBanned: 'В бане',
+                appTitle: 'Арт Студия', tabOrder: 'Заказать', tabProfile: 'Профиль', tabNew: 'Новые заявки', tabActive: 'В работе', tabBanned: 'Заблокированные',
                 emptyOrdersTitle: 'Пока нет заказов', emptyOrdersDesc: 'Заполните форму, чтобы сделать первый заказ.',
                 emptyNewTitle: 'Все сделано!', emptyNewDesc: 'Новых заявок пока нет. Время отдохнуть!',
                 emptyActiveTitle: 'Нет активных заказов', emptyActiveDesc: 'Примите заявки, чтобы они появились здесь.',
@@ -93,23 +89,6 @@
                 cancelOrder: 'Отменить заказ', submitArt: 'Сдать работу', watermarkWarning: 'ВНИМАНИЕ: Вы поставили водяной знак?',
                 finalPrice: 'Итоговая цена', requestRevision: 'Доработать (Правки)', approvePay: 'Одобрить и Оплатить', cancelled: 'Отменен', completed: 'Завершен', inReview: 'На проверке', waitReview: 'Ожидает проверки клиентом',
                 cancelConfirm: 'Вы уверены, что хотите отменить заказ?', submitFinalBtn: 'Сдать работу'
-            },
-            en: {
-                appTitle: 'Commission Studio', tabOrder: 'Order Art', tabProfile: 'Profile', tabNew: 'New Requests', tabActive: 'Active Works', tabBanned: 'Banned',
-                emptyOrdersTitle: 'No Orders Yet', emptyOrdersDesc: 'Fill out the form to commission your first artwork.',
-                emptyNewTitle: 'All Caught Up!', emptyNewDesc: 'No new requests right now. Time to relax!',
-                emptyActiveTitle: 'No Active Works', emptyActiveDesc: 'Accept some requests to see them here.',
-                emptyBannedTitle: 'No Banned Users', emptyBannedDesc: 'You have not banned anyone.',
-                formTitle: 'Request a Commission', artType: 'Art Type',
-                types: { portrait: 'Portrait', halfBody: 'Half Body', fullBody: 'Full Body', chibi: 'Chibi', sketch: 'Sketch', other: 'Other' },
-                description: 'Description', uploadBtn: 'Upload References', submitBtn: 'Submit Request',
-                filesAttached: 'images', stats: 'Your Stats', totalOrdered: 'Total Ordered', language: 'Language',
-                orderHistory: 'Order History', darkMode: 'Dark Mode', setPrice: 'Set Price', acceptOrder: 'Accept Order', declineOrder: 'Decline', banUser: 'Ban User', unban: 'Unban',
-                unread: 'New', pending: 'Pending', accepted: 'Accepted', banned: 'Banned', chatPlaceholder: 'Message...', send: 'Send', priceSetAt: 'Price:', back: 'Back',
-                success: 'Success!', orderSent: 'Your request has been sent.', currency: 'Currency', byn: 'BYN', stars: 'Stars',
-                cancelOrder: 'Cancel Order', submitArt: 'Submit Artwork', watermarkWarning: 'WARNING: Did you add a watermark?',
-                finalPrice: 'Final Price', requestRevision: 'Request Revision', approvePay: 'Approve & Pay', cancelled: 'Cancelled', completed: 'Completed', inReview: 'In Review', waitReview: 'Waiting for Customer Review',
-                cancelConfirm: 'Are you sure you want to cancel this order?', submitFinalBtn: 'Submit to Customer'
             }
         };
 
@@ -152,11 +131,11 @@
                 payload.initData = tgInitDataRaw; 
                 try {
                     const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    if(!res.ok) throw new Error("HTTP Error " + res.status);
-                    await api.sync();
+                    if(!res.ok) throw new Error("Server Error");
+                    await api.sync(); 
                 } catch (e) { 
-                    UI.showAlert("❌ ОШИБКА СЕТИ: Заказ не отправлен. Убедитесь, что сервер запущен и вы обновили ссылку на github.");
-                    throw e; // Жестко прерываем функцию, чтобы не было фейкового сообщения "Успех"
+                    UI.showAlert("❌ Нет связи с сервером. Повторите попытку позже."); 
+                    throw e; 
                 }
             },
             createOrder: (type, desc, refs) => api.postAction(`/api/order`, { customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type, description: desc, references: refs }),
@@ -175,49 +154,18 @@
         const UI = {
             showAlert: (message) => {
                 const root = document.getElementById('modal-root');
-                root.innerHTML = `
-                    <div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
-                        <div class="bg-white dark:bg-darkSurface dark:text-gray-100 p-6 rounded-3xl shadow-xl max-w-sm w-full border border-primaryPink/20 animate-[slideUp_0.2s_ease-out]">
-                            <h3 class="font-bold text-lg mb-2">Внимание</h3>
-                            <p class="text-sm opacity-80 mb-6">${message}</p>
-                            <button onclick="document.getElementById('modal-root').innerHTML=''" class="w-full bg-primaryPink text-textDark font-bold py-3 rounded-xl active:scale-95 transition-transform">OK</button>
-                        </div>
-                    </div>
-                `;
+                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface dark:text-gray-100 p-6 rounded-3xl shadow-xl max-w-sm w-full border border-primaryPink/20 animate-[slideUp_0.2s_ease-out]"><h3 class="font-bold text-lg mb-2">Внимание</h3><p class="text-sm opacity-80 mb-6">${message}</p><button onclick="document.getElementById('modal-root').innerHTML=''" class="w-full bg-primaryPink text-textDark font-bold py-3 rounded-xl active:scale-95 transition-transform">OK</button></div></div>`;
             },
             showConfirm: (msg, onConfirm) => {
                 const root = document.getElementById('modal-root');
                 window._cf = () => { root.innerHTML = ''; onConfirm(); };
                 window._cl = () => { root.innerHTML = ''; };
-                root.innerHTML = `
-                    <div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
-                        <div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20">
-                            <h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">Подтверждение</h3>
-                            <p class="text-sm opacity-80 mb-6 text-textDark dark:text-gray-300">${msg}</p>
-                            <div class="flex gap-3">
-                                <button onclick="window._cl()" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95 transition-transform">Отмена</button>
-                                <button onclick="window._cf()" class="flex-1 bg-primaryPink text-darkBg font-bold py-3 rounded-xl shadow-md active:scale-95 transition-transform">Да</button>
-                            </div>
-                        </div>
-                    </div>`;
+                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">Подтверждение</h3><p class="text-sm opacity-80 mb-6 text-textDark dark:text-gray-300">${msg}</p><div class="flex gap-3"><button onclick="window._cl()" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95 transition-transform">Отмена</button><button onclick="window._cf()" class="flex-1 bg-primaryPink text-darkBg font-bold py-3 rounded-xl shadow-md active:scale-95 transition-transform">Да</button></div></div></div>`;
             },
             showSubmitArtModal: (order, onConfirm) => {
                 const root = document.getElementById('modal-root');
                 window._sa = () => { root.innerHTML=''; onConfirm(document.getElementById('finalPriceInput').value); };
-                root.innerHTML = `
-                    <div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
-                        <div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20">
-                            <div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4"><i data-lucide="image-check" class="w-6 h-6 text-primaryPink"></i></div>
-                            <h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3>
-                            <p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i> ${t('watermarkWarning')}</p>
-                            <label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label>
-                            <input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0">
-                            <div class="flex gap-3">
-                                <button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button>
-                                <button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button>
-                            </div>
-                        </div>
-                    </div>`;
+                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4"><i data-lucide="image-check" class="w-6 h-6 text-primaryPink"></i></div><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3><p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i> ${t('watermarkWarning')}</p><label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label><input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0"><div class="flex gap-3"><button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button><button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button></div></div></div>`;
                 if(window.lucide) lucide.createIcons();
             }
         };
@@ -236,8 +184,7 @@
                 }
                 header.innerHTML = `<div class="flex items-center text-textDark dark:text-white"><button onclick="App.goBack()" class="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><i data-lucide="chevron-left" class="w-6 h-6"></i></button><h1 class="font-bold text-lg truncate mx-2">${order ? t('types', order.type) : t('back')}</h1>${extraInfo}</div><div>${cancelBtn}</div>`;
             } else {
-                let rightAction = currentRole === 'artist' ? `<button onclick="App.toggleTheme()" class="p-2 rounded-full border border-primaryPink/20 hover:bg-black/5 dark:hover:bg-white/5 text-textDark dark:text-white"><div class="w-5 h-5 flex items-center justify-center"><i data-lucide="${state.isDark?'sun':'moon'}" class="w-5 h-5"></i></div></button>` : '';
-                header.innerHTML = `<div class="flex items-center gap-3"><div class="w-10 h-10 bg-primaryPink rounded-2xl flex items-center justify-center"><i data-lucide="palette" class="w-6 h-6 text-darkBg"></i></div><h1 class="font-bold text-xl text-textDark dark:text-white">${t('appTitle')}</h1></div><div class="flex items-center gap-2">${rightAction}</div>`;
+                header.innerHTML = `<div class="flex items-center gap-3"><div class="w-10 h-10 bg-primaryPink rounded-2xl flex items-center justify-center"><i data-lucide="palette" class="w-6 h-6 text-darkBg"></i></div><h1 class="font-bold text-xl text-textDark dark:text-white">${t('appTitle')}</h1></div><div class="flex items-center gap-2"></div>`;
             }
         }
 
@@ -249,29 +196,21 @@
                 const unread = state.mockOrders.filter(o => o.status === 'pending' && !o.isRead).length;
                 tabsHTML = `
                     <button onclick="App.switchTab('new_requests')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'new_requests' ? 'text-primaryPink opacity-100' : 'opacity-40 text-textDark dark:text-white'} transition-all">
-                        <div class="w-6 h-6 relative flex items-center justify-center">
-                            <i data-lucide="inbox" class="w-6 h-6"></i>
-                            ${unread > 0 ? `<span class="absolute -top-1 -right-2 w-3 h-3 bg-softRed rounded-full glowing-dot border-2 border-white dark:border-darkBg"></span>` : ''}
-                        </div>
-                        <span class="text-[10px] font-bold">${t('tabNew')}</span>
+                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="inbox" class="w-6 h-6"></i>${unread > 0 ? `<span class="absolute -top-1 -right-2 w-3 h-3 bg-softRed rounded-full glowing-dot border-2 border-white dark:border-darkBg"></span>` : ''}</div><span class="text-[10px] font-bold">${t('tabNew')}</span>
                     </button>
                     <button onclick="App.switchTab('active_works')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'active_works' ? 'text-primaryPink opacity-100' : 'opacity-40 text-textDark dark:text-white'} transition-all">
-                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="paintbrush" class="w-6 h-6"></i></div>
-                        <span class="text-[10px] font-bold">${t('tabActive')}</span>
+                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="paintbrush" class="w-6 h-6"></i></div><span class="text-[10px] font-bold">${t('tabActive')}</span>
                     </button>
                     <button onclick="App.switchTab('banned')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'banned' ? 'text-softRedText opacity-100' : 'opacity-40 text-textDark dark:text-white'} transition-all">
-                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="shield-alert" class="w-6 h-6"></i></div>
-                        <span class="text-[10px] font-bold">${t('tabBanned')}</span>
+                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="shield-alert" class="w-6 h-6"></i></div><span class="text-[10px] font-bold">${t('tabBanned')}</span>
                     </button>`;
             } else {
                 tabsHTML = `
                     <button onclick="App.switchTab('order_art')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'order_art' ? 'text-primaryPink opacity-100' : 'opacity-40 text-textDark dark:text-white'} transition-all">
-                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="pen-tool" class="w-6 h-6"></i></div>
-                        <span class="text-[10px] font-bold">${t('tabOrder')}</span>
+                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="pen-tool" class="w-6 h-6"></i></div><span class="text-[10px] font-bold">${t('tabOrder')}</span>
                     </button>
                     <button onclick="App.switchTab('profile')" class="flex-1 py-4 flex flex-col items-center gap-1 ${state.tab === 'profile' ? 'text-primaryPink opacity-100' : 'opacity-40 text-textDark dark:text-white'} transition-all">
-                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="user" class="w-6 h-6"></i></div>
-                        <span class="text-[10px] font-bold">${t('tabProfile')}</span>
+                        <div class="w-6 h-6 relative flex items-center justify-center"><i data-lucide="user" class="w-6 h-6"></i></div><span class="text-[10px] font-bold">${t('tabProfile')}</span>
                     </button>`;
             }
             nav.innerHTML = `<div class="flex justify-between px-4">${tabsHTML}</div>`;
@@ -289,11 +228,16 @@
                         <form id="orderForm" onsubmit="App.submitOrder(event)" class="space-y-5">
                             <div>
                                 <label class="block text-sm font-semibold mb-2 ml-1 opacity-80 text-textDark dark:text-gray-200">${t('artType')}</label>
-                                <div class="relative"><select id="formType" required class="custom-input appearance-none"><option value="portrait">${t('types', 'portrait')}</option><option value="halfBody">${t('types', 'halfBody')}</option><option value="fullBody">${t('types', 'fullBody')}</option><option value="chibi">${t('types', 'chibi')}</option><option value="sketch">${t('types', 'sketch')}</option><option value="other">${t('types', 'other')}</option></select><i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-50 pointer-events-none text-textDark dark:text-white"></i></div>
+                                <div class="relative">
+                                    <select id="formType" required class="custom-input appearance-none" onchange="state.draftType = this.value">
+                                        ${Object.entries(i18n.ru.types).map(([k,v]) => `<option value="${k}" ${state.draftType === k ? 'selected' : ''}>${t('types', k)}</option>`).join('')}
+                                    </select>
+                                    <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-50 pointer-events-none text-textDark dark:text-white"></i>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold mb-2 ml-1 opacity-80 text-textDark dark:text-gray-200">${t('description')}</label>
-                                <textarea id="formDesc" required rows="4" class="custom-input resize-none" placeholder="..."></textarea>
+                                <textarea id="formDesc" required rows="4" class="custom-input resize-none" placeholder="..." oninput="state.draftDesc = this.value">${state.draftDesc}</textarea>
                             </div>
                             <div>
                                 <label class="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-primaryPink/40 rounded-xl bg-primaryPink/5 dark:bg-primaryPink/10 cursor-pointer hover:bg-primaryPink/10 text-textDark dark:text-white transition-colors">
@@ -318,11 +262,7 @@
             return `
                 <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
                     <div class="bg-white dark:bg-darkSurface p-5 rounded-3xl shadow-sm border border-primaryPink/10 dark:border-primaryPink/20 flex items-center justify-between">
-                        <div class="flex items-center gap-4">${getAvatar(tgPhoto, tgUserName, '14')}<div><h3 class="font-bold text-lg text-textDark dark:text-white">${tgUserName}</h3><p class="text-sm opacity-60 text-textDark dark:text-gray-300">ID: ${tgUser}</p></div></div>
-                        <div class="flex flex-col gap-2 items-end">
-                            <div class="flex bg-bgCream dark:bg-darkBg rounded-lg p-1 border border-primaryPink/20"><button onclick="App.setLang('en')" class="px-3 py-1 rounded-md text-sm font-bold ${state.lang === 'en' ? 'bg-primaryPink text-darkBg shadow-sm' : 'text-textDark dark:text-gray-200 opacity-50'}">EN</button><button onclick="App.setLang('ru')" class="px-3 py-1 rounded-md text-sm font-bold ${state.lang === 'ru' ? 'bg-primaryPink text-darkBg shadow-sm' : 'text-textDark dark:text-gray-200 opacity-50'}">RU</button></div>
-                            <button onclick="App.toggleTheme()" class="flex items-center gap-2 text-xs font-bold bg-bgCream dark:bg-darkBg text-textDark dark:text-gray-200 px-3 py-1.5 rounded-lg border border-primaryPink/20"><i data-lucide="${state.isDark?'sun':'moon'}" class="w-3.5 h-3.5"></i> ${t('darkMode')}</button>
-                        </div>
+                        <div class="flex items-center gap-4">${getAvatar(tgPhoto, tgUserName, '14')}<div><h3 class="font-bold text-lg text-textDark dark:text-white">${tgUserName}</h3></div></div>
                     </div>
                     <div><h3 class="font-bold text-sm ml-2 mb-3 opacity-60 uppercase text-textDark dark:text-white">${t('orderHistory')}</h3>${html}</div>
                 </div>`;
@@ -335,7 +275,7 @@
             if (!orders.length) return renderEmptyState(state.tab === 'new_requests' ? t('emptyNewTitle') : (state.tab === 'banned' ? t('emptyBannedTitle') : t('emptyActiveTitle')), state.tab === 'new_requests' ? t('emptyNewDesc') : (state.tab === 'banned' ? t('emptyBannedDesc') : t('emptyActiveDesc')), state.tab === 'new_requests' ? 'coffee' : (state.tab === 'banned' ? 'shield-check' : 'check-circle-2'));
 
             return `<div class="p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">${orders.map(o => `
-                <div ${state.tab !== 'banned' ? `onclick="App.openOrder('${o.id}')"` : ''} class="bg-white dark:bg-darkSurface p-5 rounded-2xl shadow-sm border ${!o.isRead && state.tab==='new_requests' ? 'border-primaryPink shadow-[0_0_10px_rgba(244,199,204,0.3)] dark:shadow-none' : 'border-primaryPink/10 dark:border-primaryPink/20'} relative overflow-hidden${['completed', 'cancelled'].includes(o.status) ? 'opacity-60' : ''}">
+                <div ${state.tab !== 'banned' ? `onclick="App.openOrder('${o.id}')"` : ''} class="bg-white dark:bg-darkSurface p-5 rounded-2xl shadow-sm border ${!o.isRead && state.tab==='new_requests' ? 'border-primaryPink shadow-[0_0_10px_rgba(244,199,204,0.3)] dark:shadow-none' : 'border-primaryPink/10 dark:border-primaryPink/20'} relative overflow-hidden${['completed', 'cancelled'].includes(o.status) ? 'opacity-60' : ''} cursor-pointer">
                     ${!o.isRead && state.tab === 'new_requests' ? `<div class="absolute top-5 right-5 w-3 h-3 bg-primaryPink rounded-full glowing-dot"></div>` : ''}
                     <div class="flex justify-between items-start mb-3 pr-6 text-textDark dark:text-white">
                         <div><h3 class="font-bold text-lg">${t('types', o.type)}</h3><div class="flex items-center gap-2 mt-1">${getAvatar(o.customerPhoto, o.customerName, '4')}<p class="text-xs opacity-60">${o.customerName}</p></div></div>
@@ -454,11 +394,6 @@
             },
             switchTab: (id) => { state.tab = id; state.view = 'main'; state.activeOrderId = null; App.render(); },
             setLang: (l) => { state.lang = l; App.render(); },
-            toggleTheme: () => { 
-                state.isDark = !state.isDark; 
-                document.documentElement.classList.toggle('dark', state.isDark); 
-                App.render(); 
-            },
             openOrder: (id) => {
                 state.activeOrderId = id; const o = state.mockOrders.find(x => x.id === id);
                 if (currentRole === 'artist' && o.status === 'pending' && !o.isRead) api.markAsRead(id);
@@ -476,11 +411,13 @@
                 e.preventDefault();
                 try {
                     await api.createOrder(document.getElementById('formType').value, document.getElementById('formDesc').value, state.draftImages);
-                    state.draftImages = []; document.getElementById('orderForm').reset(); 
+                    state.draftImages = []; 
+                    state.draftDesc = ''; // Стираем черновик, если всё успешно
+                    document.getElementById('orderForm').reset(); 
                     if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else UI.showAlert(t('orderSent'));
                     App.switchTab('profile'); 
                 } catch(err) {
-                    // Ошибка уже выведена в api.postAction
+                    // Ошибка выведена в api.postAction, текст остается на месте
                 }
             },
             acceptCurrentOrder: () => {
@@ -516,4 +453,3 @@
     </script>
 </body>
 </html>
-И кстати я нашёл проблему, почему-то заказы вообще не появляются и не доходят, я запустил скрипт питона и там ничего не отобразилось после 4 моих сделанных заказов в телеграмме
