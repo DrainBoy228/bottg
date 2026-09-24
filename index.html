@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Artist Commission Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <script>
@@ -22,19 +23,18 @@
         }
     </script>
     <style>
-        body { background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); overflow: hidden; height: 100vh; display: flex; flex-direction: column;}
-        #app-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        body, html { height: 100%; margin: 0; overflow: hidden; background-color: #FDFBF7; color: #4A4345; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s; }
+        #app-container { display: flex; flex-direction: column; height: 100dvh; max-width: 32rem; margin: 0 auto; }
+        #app-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #F4C7CC; border-radius: 4px; }
-        
         .glowing-dot { box-shadow: 0 0 8px #F4C7CC, 0 0 12px #F4C7CC; animation: pulse-glow 2s infinite; }
+        .dark .glowing-dot { box-shadow: 0 0 8px #A5737A, 0 0 12px #A5737A; }
         @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
-        
         .custom-input { width: 100%; background-color: white; border: 2px solid #FDFBF7; border-radius: 0.75rem; padding: 0.75rem 1rem; color: #4A4345; transition: border-color 0.2s ease; outline: none; }
         .dark .custom-input { background-color: #1E1E1E !important; border-color: #333333 !important; color: #f3f4f6 !important; }
         .custom-input:focus { border-color: #F4C7CC; }
-        
         .dark body { background-color: #121212 !important; color: #f3f4f6 !important; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
@@ -45,13 +45,19 @@
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased selection:bg-primaryPink selection:text-textDark overflow-x-hidden transition-colors duration-300">
 
-    <div id="app-header" class="shrink-0 sticky top-0 z-20 bg-bgCream/90 dark:bg-darkSurface/90 backdrop-blur-md border-b border-primaryPink/30 px-4 py-4 flex justify-between items-center shadow-sm"></div>
-    <main id="app-content" class="w-full max-w-lg mx-auto relative pb-24"></main>
-    <nav id="app-bottom-nav" class="shrink-0 fixed bottom-0 w-full max-w-lg left-1/2 -translate-x-1/2 bg-white dark:bg-darkSurface border-t border-primaryPink/30 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-safe"></nav>
+    <div id="app-container" class="bg-bgCream dark:bg-darkBg w-full h-full">
+        <header id="app-header" class="shrink-0 sticky top-0 z-20 bg-bgCream/90 dark:bg-darkSurface/90 backdrop-blur-md border-b border-primaryPink/30 dark:border-primaryPink/10 px-4 py-4 flex justify-between items-center shadow-sm"></header>
+        <main id="app-content"></main>
+        <nav id="app-bottom-nav" class="shrink-0 fixed bottom-0 w-full max-w-lg left-1/2 -translate-x-1/2 bg-white dark:bg-darkSurface border-t border-primaryPink/30 dark:border-primaryPink/10 shadow-[0_-4px_15px_rgba(244,199,204,0.1)] z-20 pb-safe"></nav>
+    </div>
     <div id="modal-root" class="relative z-50"></div>
 
     <script>
-        // ВШИТЫЕ ИКОНКИ (ТЕПЕРЬ ОНИ НИКОГДА НЕ ПРОПАДУТ)
+        // =========================================================================
+        const API_URL = "https://bot-cpzd.onrender.com"; // <-- ВСТАВЬ СЮДА ССЫЛКУ ИЗ RENDER.COM
+        const ARTIST_TELEGRAM_ID = 5800436089; 
+        // =========================================================================
+
         const I = {
             inbox: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>`,
             brush: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"></path><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"></path></svg>`,
@@ -70,11 +76,9 @@
             chevronLeft: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>`,
             chevronRight: `<svg class="w-5 h-5 opacity-30 text-textDark dark:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>`,
             chevronDown: `<svg class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-50 pointer-events-none text-textDark dark:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>`,
-            sparkles: `<svg class="w-5 h-5 text-primaryPink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>`
+            sparkles: `<svg class="w-5 h-5 text-primaryPink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>`,
+            trash: `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>`
         };
-
-        const API_URL = "https://bot-cpzd.onrender.com"; 
-        const ARTIST_TELEGRAM_ID = 5800436089; 
 
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); try { tg.setHeaderColor(tg.colorScheme === 'dark' ? '#121212' : '#FDFBF7'); } catch (e) {} }
@@ -153,16 +157,18 @@
                 payload.initData = tgInitDataRaw; 
                 try {
                     const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    if(!res.ok) { throw new Error("Server Error"); }
+                    if(!res.ok) {
+                        throw new Error(`Ошибка сервера: ${res.status}`);
+                    }
                     await api.sync(); 
                 } catch (e) { 
-                    UI.showAlert("❌ Нет связи с сервером. Повторите попытку позже."); 
                     throw e; 
                 }
             },
             createOrder: (type, desc, refs) => api.postAction(`/api/order`, { customerId: tgUser, customerName: tgUserName, customerPhoto: tgPhoto, type, description: desc, references: refs }),
             acceptOrder: (id, price, cur) => api.postAction(`/api/order/${id}/accept`, { price, currency: cur }),
             cancelOrder: (id) => api.postAction(`/api/order/${id}/cancel`),
+            deleteOrder: (id) => api.postAction(`/api/order/${id}/delete`),
             declineOrder: (id) => api.postAction(`/api/order/${id}/decline`),
             submitFinalArt: (id, price) => api.postAction(`/api/order/${id}/submit`, { price }),
             requestRevision: (id) => api.postAction(`/api/order/${id}/revision`),
@@ -187,7 +193,7 @@
             showSubmitArtModal: (order, onConfirm) => {
                 const root = document.getElementById('modal-root');
                 window._sa = () => { root.innerHTML=''; onConfirm(document.getElementById('finalPriceInput').value); };
-                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4">${I.checkCircle}</div><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3><p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2">ВНИМАНИЕ: Вы поставили водяной знак?</p><label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label><input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0"><div class="flex gap-3"><button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button><button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button></div></div></div>`;
+                root.innerHTML = `<div class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-xl max-w-sm w-full animate-[slideUp_0.2s_ease-out] border border-primaryPink/20"><div class="w-12 h-12 bg-primaryPink/20 rounded-full flex items-center justify-center mb-4">${I.checkCircle}</div><h3 class="font-bold text-lg mb-2 text-textDark dark:text-white">${t('submitArt')}</h3><p class="text-sm text-softRedText bg-softRed/10 p-3 rounded-xl border border-softRed mb-4 font-medium flex gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i> ${t('watermarkWarning')}</p><label class="block text-sm font-bold mb-2 text-textDark dark:text-white">${t('finalPrice')} (${order.currency === 'Stars' ? '⭐' : order.currency})</label><input type="number" id="finalPriceInput" class="custom-input font-bold text-lg mb-6" value="${order.price}" min="0"><div class="flex gap-3"><button onclick="document.getElementById('modal-root').innerHTML=''" class="flex-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-white border border-primaryPink/20 font-bold py-3 rounded-xl active:scale-95">Назад</button><button onclick="window._sa()" class="flex-[2] bg-primaryPink text-darkBg font-bold py-3 rounded-xl active:scale-95">${t('submitFinalBtn')}</button></div></div></div>`;
             }
         };
 
@@ -260,7 +266,7 @@
             }
 
             return `
-                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out] pb-32">
                     <div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-sm border border-primaryPink/10 dark:border-primaryPink/20">
                         <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-textDark dark:text-white">${I.sparkles} ${t('formTitle')}</h2>
                         <form id="orderForm" onsubmit="App.submitOrder(event)" class="space-y-5">
@@ -298,12 +304,21 @@
             const orders = state.mockOrders.filter(o => o.customerId === tgUser).slice().reverse();
             let html = orders.length ? orders.map(o => `
                 <div onclick="App.openOrder('${o.id}')" class="bg-white dark:bg-darkSurface p-4 rounded-2xl mb-3 shadow-sm border border-primaryPink/10 dark:border-primaryPink/20 cursor-pointer flex items-center justify-between">
-                    <div><div class="font-bold mb-1 text-textDark dark:text-white">${t('types', o.type)}</div><div class="text-xs px-2 py-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-gray-100 rounded-md border border-primaryPink/20 inline-block opacity-80">${t(o.status)}</div></div>
-                    <div class="flex items-center gap-3">${o.price ? `<span class="font-bold text-primaryPink">${formatPrice(o.price, o.currency)}</span>` : ''}${I.chevronRight}</div>
+                    <div>
+                        <div class="font-bold mb-1 text-textDark dark:text-white">${t('types', o.type)}</div>
+                        <div class="text-xs px-2 py-1 bg-bgCream dark:bg-darkBg text-textDark dark:text-gray-100 rounded-md border border-primaryPink/20 inline-block opacity-80">${t(o.status)}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        ${o.price ? `<span class="font-bold text-primaryPink">${formatPrice(o.price, o.currency)}</span>` : ''}
+                        <button onclick="event.stopPropagation(); App.deleteOrder('${o.id}')" class="p-2 text-softRedText opacity-80 hover:opacity-100 hover:bg-softRed/10 rounded-full transition-colors flex items-center justify-center">
+                            ${I.trash}
+                        </button>
+                    </div>
                 </div>`).join('') : renderEmptyState(t('emptyOrdersTitle'), t('emptyOrdersDesc'), I.coffee);
 
+            // Обрати внимание на pb-32 в самом первом div - это обеспечит идеальную прокрутку, если заказов очень много!
             return `
-                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <div class="p-4 space-y-6 animate-[fadeIn_0.3s_ease-out] pb-32">
                     <div class="bg-white dark:bg-darkSurface p-5 rounded-3xl shadow-sm border border-primaryPink/10 dark:border-primaryPink/20 flex items-center justify-between">
                         <div class="flex items-center gap-4">${getAvatar(tgPhoto, tgUserName, '14')}<div><h3 class="font-bold text-lg text-textDark dark:text-white">${tgUserName}</h3></div></div>
                         <div class="flex flex-col gap-2 items-end">
@@ -315,12 +330,26 @@
         }
 
         function renderArtistList() {
-            const filters = state.tab === 'new_requests' ? ['pending'] : (state.tab === 'banned' ? ['banned'] : ['accepted', 'in_review', 'completed', 'cancelled']);
-            const orders = state.mockOrders.filter(o => filters.includes(o.status)).slice().reverse();
+            let emptyTitle, emptyDesc, emptyIcon;
+            let statusFilter = [];
+            
+            // Жестко привязываем пустые экраны к вкладке
+            if (state.tab === 'new_requests') {
+                statusFilter = ['pending'];
+                emptyTitle = t('emptyNewTitle'); emptyDesc = t('emptyNewDesc'); emptyIcon = I.coffee;
+            } else if (state.tab === 'banned') {
+                statusFilter = ['banned'];
+                emptyTitle = t('emptyBannedTitle'); emptyDesc = t('emptyBannedDesc'); emptyIcon = I.shield;
+            } else {
+                statusFilter = ['accepted', 'in_review', 'completed', 'cancelled'];
+                emptyTitle = t('emptyActiveTitle'); emptyDesc = t('emptyActiveDesc'); emptyIcon = I.checkCircle;
+            }
+            
+            const orders = state.mockOrders.filter(o => statusFilter.includes(o.status)).slice().reverse();
 
-            if (!orders.length) return renderEmptyState(state.tab === 'new_requests' ? t('emptyNewTitle') : (state.tab === 'banned' ? t('emptyBannedTitle') : t('emptyActiveTitle')), state.tab === 'new_requests' ? t('emptyNewDesc') : (state.tab === 'banned' ? t('emptyBannedDesc') : t('emptyActiveDesc')), state.tab === 'new_requests' ? I.coffee : (state.tab === 'banned' ? I.shieldCheck : I.checkCircle));
+            if (!orders.length) return renderEmptyState(emptyTitle, emptyDesc, emptyIcon);
 
-            return `<div class="p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">${orders.map(o => `
+            return `<div class="p-4 space-y-3 animate-[fadeIn_0.3s_ease-out] pb-32">${orders.map(o => `
                 <div ${state.tab !== 'banned' ? `onclick="App.openOrder('${o.id}')"` : ''} class="bg-white dark:bg-darkSurface p-5 rounded-2xl shadow-sm border ${!o.isRead && state.tab==='new_requests' ? 'border-primaryPink shadow-[0_0_10px_rgba(244,199,204,0.3)] dark:shadow-none' : 'border-primaryPink/10 dark:border-primaryPink/20'} relative overflow-hidden${['completed', 'cancelled'].includes(o.status) ? 'opacity-60' : ''} cursor-pointer">
                     ${!o.isRead && state.tab === 'new_requests' ? `<div class="absolute top-5 right-5 w-3 h-3 bg-primaryPink rounded-full glowing-dot"></div>` : ''}
                     <div class="flex justify-between items-start mb-3 pr-6 text-textDark dark:text-white">
@@ -329,7 +358,7 @@
                     </div>
                     <p class="text-sm opacity-80 line-clamp-2 leading-relaxed bg-bgCream dark:bg-darkBg p-3 rounded-xl border border-primaryPink/5 text-textDark dark:text-gray-200">${o.description}</p>
                     <div class="mt-4 flex items-center justify-between text-xs font-medium text-textDark dark:text-gray-300">
-                        <span>${formatDate(o.date)}</span>${state.tab === 'banned' ? `<button onclick="App.unbanUser('${o.id}')" class="px-4 py-2 bg-textDark dark:bg-white text-white dark:text-darkBg rounded-lg font-bold">${t('unban')}</button>` : `<span class="flex items-center opacity-50">${state.tab === 'new_requests' ? 'Открыть ' : 'Открыть '} ${I.chevronRight}</span>`}
+                        <span>${formatDate(o.date)}</span>${state.tab === 'banned' ? `<button onclick="App.unbanUser('${o.id}')" class="px-4 py-2 bg-textDark dark:bg-white text-white dark:text-darkBg rounded-lg font-bold">${t('unban')}</button>` : `<span class="flex items-center gap-1 opacity-50">${state.tab === 'new_requests' ? 'Review' : 'Open'} ${I.chevronRight}</span>`}
                     </div>
                 </div>`).join('')}</div>`;
         }
@@ -356,7 +385,7 @@
             const refsHtml = (order.references && order.references.length) ? `<div class="mt-4"><h3 class="text-xs font-bold uppercase opacity-50 mb-2 text-textDark dark:text-gray-200">Фото</h3><div class="flex gap-2 overflow-x-auto pb-2">${order.references.map(img => `<img src="${img}" class="w-20 h-20 object-cover rounded-lg border border-primaryPink/30">`).join('')}</div></div>` : '';
 
             return `
-                <div class="p-4 animate-[slideInRight_0.3s_ease-out]">
+                <div class="p-4 animate-[slideInRight_0.3s_ease-out] pb-32">
                     <div class="bg-white dark:bg-darkSurface p-6 rounded-3xl shadow-sm border border-primaryPink/10 dark:border-primaryPink/20 relative">
                         <div class="absolute top-6 right-6 bg-bgCream dark:bg-darkBg px-3 py-1 rounded-lg border border-primaryPink/20 text-xs font-bold uppercase opacity-80 text-textDark dark:text-white">${t(order.status)}</div>
                         <div class="mb-6 pr-20 text-textDark dark:text-white"><h2 class="text-2xl font-bold mb-2">${t('types', order.type)}</h2><div class="flex items-center gap-2 mb-1">${getAvatar(order.customerPhoto, order.customerName, '6')}<p class="text-sm font-medium opacity-80">${order.customerName}</p></div></div>
@@ -437,7 +466,6 @@
                 }
             },
             switchTab: (id) => { 
-                // ЖЕСТКИЙ СБРОС ФОРМЫ при переключении вкладки
                 state.draftDesc = ''; 
                 state.draftImages = []; 
                 state.draftType = 'portrait';
@@ -473,10 +501,13 @@
             },
             submitOrder: async (e) => {
                 e.preventDefault();
+                
+                const btn = document.getElementById('submitBtn');
                 const btnText = document.getElementById('submitText');
                 const btnIcon = document.getElementById('submitIcon');
-                document.getElementById('submitBtn').disabled = true;
-                btnText.innerText = 'Отправка...';
+                btn.disabled = true;
+                btn.classList.add('opacity-50');
+                btnText.innerText = 'Отправка... (может занять до 1 мин)';
                 if(btnIcon) btnIcon.innerHTML = ''; 
 
                 try {
@@ -488,8 +519,8 @@
                     if(tg && tg.showAlert) tg.showAlert(t('orderSent')); else UI.showAlert(t('orderSent'));
                     App.switchTab('profile'); 
                 } catch(err) {
-                    // Ошибка выведена в api.postAction, возвращаем кнопку обратно
-                    document.getElementById('submitBtn').disabled = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
                     btnText.innerText = t('submitBtn');
                     if(btnIcon) btnIcon.innerHTML = I.send;
                 }
@@ -501,6 +532,7 @@
                 state.view = 'chat'; App.render();
             },
             cancelCurrentOrder: () => { UI.showConfirm(t('cancelConfirm'), () => { api.cancelOrder(state.activeOrderId); App.render(); }); },
+            deleteOrder: (id) => { UI.showConfirm('Удалить этот заказ навсегда?', () => { api.deleteOrder(id); App.render(); }); },
             unbanUser: (id) => { UI.showConfirm('Разблокировать?', () => { api.unbanUser(id); App.render(); }); },
 
             sendChat: async () => {
